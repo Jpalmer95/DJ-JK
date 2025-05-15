@@ -4,6 +4,7 @@ import PianoGrid from "@/components/PianoGrid";
 import HelpModal from "@/components/modals/HelpModal";
 import SettingsModal from "@/components/modals/SettingsModal";
 import ShareModal from "@/components/modals/ShareModal";
+import CustomSoundsModal from "@/components/modals/CustomSoundsModal";
 import BaseTrackUploader from "@/components/BaseTrackUploader";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -30,6 +31,7 @@ export default function Home() {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const [isCustomSoundsOpen, setIsCustomSoundsOpen] = useState(false);
   
   // Recording State
   const [isRecording, setIsRecording] = useState(false);
@@ -157,6 +159,11 @@ export default function Home() {
   // Change sound mode
   const handleSoundModeChange = (mode: SoundMode) => {
     setCurrentSoundMode(mode);
+    
+    // If custom mode selected, open the custom sounds modal
+    if (mode === 'custom') {
+      setIsCustomSoundsOpen(true);
+    }
   };
   
   // Change beat pattern
@@ -457,6 +464,11 @@ export default function Home() {
         isOpen={isShareOpen}
         onClose={() => setIsShareOpen(false)}
         recording={hasRecorded ? getRecordingData() : null}
+      />
+      
+      <CustomSoundsModal
+        isOpen={isCustomSoundsOpen}
+        onClose={() => setIsCustomSoundsOpen(false)}
       />
     </div>
   );
