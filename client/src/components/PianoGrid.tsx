@@ -111,11 +111,34 @@ const PianoGrid = forwardRef<any, PianoGridProps>(({
   
   // Create an array of notes based on grid size
   const gridNotes = useMemo(() => {
-    return Array.from({ length: gridSize }, (_, i) => ({
-      note: NOTES[i % NOTES.length],
-      colorClass: THEME_COLORS[effectiveThemeColor as keyof typeof THEME_COLORS][i % THEME_COLORS[effectiveThemeColor as keyof typeof THEME_COLORS].length]
-    }));
-  }, [gridSize, effectiveThemeColor]);
+    // For standard grid size, use middle-range notes
+    let startNoteIndex = 0;
+    
+    // Start from different octaves based on the grid size multiplier
+    if (gridSizeMultiplier === 1) {
+      // Standard grid uses C3-B5 (middle range for standard piano)
+      startNoteIndex = 7; // Start from C3
+    } else if (gridSizeMultiplier === 2) {
+      // Large grid uses C2-B6 (wider range)
+      startNoteIndex = 0; // Start from C2
+    } else {
+      // Extra large grid uses the full range
+      startNoteIndex = 0; // Start from C2
+    }
+    
+    return Array.from({ length: gridSize }, (_, i) => {
+      // Calculate the note index, ensuring we don't exceed the available notes
+      const noteIndex = (startNoteIndex + i) % NOTES.length;
+      // Color class based on theme
+      const colorIndex = i % THEME_COLORS[effectiveThemeColor as keyof typeof THEME_COLORS].length;
+      const colorClass = THEME_COLORS[effectiveThemeColor as keyof typeof THEME_COLORS][colorIndex];
+      
+      return {
+        note: NOTES[noteIndex],
+        colorClass
+      };
+    });
+  }, [gridSize, effectiveThemeColor, gridSizeMultiplier]);
   
   // Handle key click
   const handleKeyClick = (index: number) => {

@@ -92,16 +92,35 @@ export default function Share() {
     <div className="min-h-screen w-full font-inter text-gray-800">
       {/* Header */}
       <header className="w-full py-4 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto flex justify-between items-center">
-          <h1 className="text-2xl sm:text-3xl font-bold font-poppins text-blue-600">
-            Shared Music
-          </h1>
-          <Link href="/">
-            <Button variant="outline" className="rounded-full shadow-sm hover:bg-gray-50">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Studio
-            </Button>
-          </Link>
+        <div className="max-w-4xl mx-auto">
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl sm:text-3xl font-bold font-poppins text-blue-600">
+              Shared Music
+            </h1>
+            <Link href="/">
+              <Button variant="outline" className="rounded-full shadow-sm hover:bg-gray-50">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Studio
+              </Button>
+            </Link>
+          </div>
+          
+          {/* Donation Link */}
+          <div className="mt-2 text-center">
+            <a 
+              href={`https://commerce.coinbase.com/checkout/0xe0B8939Cf214DF3d6660C502CFcE3A86055631B8`} 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center text-sm font-medium text-amber-600 hover:text-amber-800 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 mr-1">
+                <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/>
+                <path d="M12 10.5c-1.5 0-2.7.85-2.7 1.9s1.2 1.9 2.7 1.9 2.7-.85 2.7-1.9-1.2-1.9-2.7-1.9zm0 2.8c-.8 0-1.5-.4-1.5-.9s.7-.9 1.5-.9 1.5.4 1.5.9-.7.9-1.5.9z"/>
+                <path d="M15.7 8.1H8.3c-.5 0-.9.4-.9.9v2.6c0 .26.14.5.36.64h-.01l3.7 2.6c.36.26.84.26 1.2 0l3.7-2.6h-.01c.22-.14.36-.38.36-.64V9c0-.5-.4-.9-.9-.9zm-.3 3.3l-3.4 2.4-3.4-2.4V9.3h6.8v2.1z"/>
+              </svg>
+              Buy me a coffee
+            </a>
+          </div>
         </div>
       </header>
 
@@ -133,6 +152,9 @@ export default function Share() {
                     'C5', 'D5', 'E5', 'F5', 'G5', 'A5', 'B5',
                     'C6', 'D6', 'E6', 'F6', 'G6', 'A6', 'B6'
                   ];
+                  
+                  // Use middle range notes as default 
+                  const startNoteIndex = 7; // Start from C3
                   
                   // Get theme color based on sound mode
                   const getThemeColor = (soundMode: string) => {
@@ -169,7 +191,7 @@ export default function Share() {
                   const maxNoteIndex = Math.max(...recording.notes.map(n => n.noteIndex)) + 1;
                   
                   return Array.from({ length: maxNoteIndex }, (_, i) => {
-                    const noteIndex = i % NOTES.length;
+                    const noteIndex = (startNoteIndex + i) % NOTES.length;
                     const note = NOTES[noteIndex];
                     const colorIndex = i % THEME_COLORS[themeColor].length;
                     const colorClass = THEME_COLORS[themeColor][colorIndex];
