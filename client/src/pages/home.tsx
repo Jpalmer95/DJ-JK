@@ -326,10 +326,13 @@ export default function Home() {
                   <div className="text-sm text-gray-600">
                     <p>Choose how many notes you want available:</p>
                     <ul className="list-disc pl-5 mt-2 space-y-1">
-                      <li>Standard: Perfect for beginners and mobile devices</li>
+                      <li>Standard: Perfect for beginners and quick compositions</li>
                       <li>Large: More notes and octaves to explore</li>
                       <li>Extra Large: Maximum range for advanced compositions</li>
                     </ul>
+                    <p className="mt-2 text-xs text-blue-600">
+                      Note: On mobile devices, this will increase the number of rows while keeping the columns the same to maintain usability.
+                    </p>
                   </div>
                 </div>
               </div>

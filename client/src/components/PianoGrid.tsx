@@ -68,23 +68,46 @@ const PianoGrid = forwardRef<any, PianoGridProps>(({
   }, [themeColor, soundMode]);
   
   // Determine base grid dimensions based on screen size
-  const baseGridSize = useMemo(() => {
-    if (isMobile) return 16; // 4x4 grid for mobile
-    return window.innerWidth < 768 ? 25 : 36; // 5x5 for tablet, 6x6 for desktop
+  const baseGridDimensions = useMemo(() => {
+    if (isMobile) {
+      return { rows: 4, cols: 4 }; // 4x4 grid for mobile
+    }
+    else if (window.innerWidth < 768) {
+      return { rows: 5, cols: 5 }; // 5x5 for tablet
+    }
+    else {
+      return { rows: 6, cols: 6 }; // 6x6 for desktop
+    }
   }, [isMobile]);
   
-  // Calculate actual grid size based on multiplier
-  const gridSize = useMemo(() => {
+  // Calculate actual grid dimensions based on multiplier
+  const gridDimensions = useMemo(() => {
     // Ensure the multiplier is within allowed range (1-3)
     const safeMultiplier = Math.max(1, Math.min(3, gridSizeMultiplier));
     
-    // For mobile, allow a smaller maximum to prevent tiny buttons
+    // For mobile devices, increase rows rather than total grid size to prevent tiny buttons
     if (isMobile) {
-      return baseGridSize * Math.min(2, safeMultiplier);
+      const multipliedRows = baseGridDimensions.rows + (safeMultiplier - 1) * 2;
+      return {
+        rows: multipliedRows,
+        cols: baseGridDimensions.cols,
+        total: multipliedRows * baseGridDimensions.cols
+      };
     }
     
-    return baseGridSize * safeMultiplier;
-  }, [baseGridSize, gridSizeMultiplier, isMobile]);
+    // For larger screens, scale both dimensions
+    const multipliedRows = baseGridDimensions.rows + (safeMultiplier - 1) * 2;
+    const multipliedCols = baseGridDimensions.cols + (safeMultiplier - 1) * 2;
+    
+    return {
+      rows: multipliedRows,
+      cols: multipliedCols,
+      total: multipliedRows * multipliedCols
+    };
+  }, [baseGridDimensions, gridSizeMultiplier, isMobile]);
+  
+  // Total grid size
+  const gridSize = gridDimensions.total;
   
   // Create an array of notes based on grid size
   const gridNotes = useMemo(() => {
@@ -115,12 +138,12 @@ const PianoGrid = forwardRef<any, PianoGridProps>(({
     }
   }));
   
-  // Determine grid columns based on screen size
-  const gridColumns = isMobile ? 'grid-cols-4' : window.innerWidth < 768 ? 'grid-cols-5' : 'grid-cols-6';
+  // Calculate grid column classes based on dimensions
+  const gridColumnClass = `grid-cols-${gridDimensions.cols}`;
   
   return (
     <motion.div 
-      className={`grid ${gridColumns} gap-3 sm:gap-4 mb-8`}
+      className={`grid ${gridColumnClass} gap-3 sm:gap-4 mb-8`}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, staggerChildren: 0.05 }}
