@@ -6,9 +6,11 @@ import { playNote, type SoundMode } from "@/lib/audio";
 
 // Define piano notes for our grid
 const NOTES = [
+  'C2', 'D2', 'E2', 'F2', 'G2', 'A2', 'B2',
   'C3', 'D3', 'E3', 'F3', 'G3', 'A3', 'B3',
   'C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4',
-  'C5', 'D5', 'E5', 'F5', 'G5', 'A5', 'B5'
+  'C5', 'D5', 'E5', 'F5', 'G5', 'A5', 'B5',
+  'C6', 'D6', 'E6', 'F6', 'G6', 'A6', 'B6'
 ];
 
 // Configure theme colors
@@ -45,6 +47,7 @@ interface PianoGridProps {
   animationsEnabled: boolean;
   themeColor: string;
   soundMode?: SoundMode;
+  gridSizeMultiplier?: number; // Multiplier for grid size (1-3)
 }
 
 const PianoGrid = forwardRef<any, PianoGridProps>(({ 
@@ -52,7 +55,8 @@ const PianoGrid = forwardRef<any, PianoGridProps>(({
   volume, 
   animationsEnabled, 
   themeColor = "blue",
-  soundMode = "piano"
+  soundMode = "piano",
+  gridSizeMultiplier = 1 // Default multiplier
 }, ref) => {
   const isMobile = useIsMobile();
   const [activeKey, setActiveKey] = useState<number | null>(null);
@@ -63,11 +67,24 @@ const PianoGrid = forwardRef<any, PianoGridProps>(({
     return soundModeColor || themeColor;
   }, [themeColor, soundMode]);
   
-  // Determine grid size based on screen size
-  const gridSize = useMemo(() => {
+  // Determine base grid dimensions based on screen size
+  const baseGridSize = useMemo(() => {
     if (isMobile) return 16; // 4x4 grid for mobile
     return window.innerWidth < 768 ? 25 : 36; // 5x5 for tablet, 6x6 for desktop
   }, [isMobile]);
+  
+  // Calculate actual grid size based on multiplier
+  const gridSize = useMemo(() => {
+    // Ensure the multiplier is within allowed range (1-3)
+    const safeMultiplier = Math.max(1, Math.min(3, gridSizeMultiplier));
+    
+    // For mobile, allow a smaller maximum to prevent tiny buttons
+    if (isMobile) {
+      return baseGridSize * Math.min(2, safeMultiplier);
+    }
+    
+    return baseGridSize * safeMultiplier;
+  }, [baseGridSize, gridSizeMultiplier, isMobile]);
   
   // Create an array of notes based on grid size
   const gridNotes = useMemo(() => {

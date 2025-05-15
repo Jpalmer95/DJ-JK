@@ -44,6 +44,7 @@ export default function Home() {
   const [currentSoundMode, setCurrentSoundMode] = useState<SoundMode>("piano");
   const [currentBeatPattern, setCurrentBeatPattern] = useState<BeatPattern>("none");
   const [beatEnabled, setBeatEnabled] = useState(false);
+  const [gridSizeMultiplier, setGridSizeMultiplier] = useState(1); // Grid size multiplier (1-3)
   
   const recordingStartTimeRef = useRef<number | null>(null);
   const pianoGridRef = useRef<any>(null);
@@ -215,9 +216,10 @@ export default function Home() {
         <div className="max-w-4xl mx-auto">
           {/* Instrument Selector Tabs */}
           <Tabs defaultValue="soundMode" className="mb-6">
-            <TabsList className="grid grid-cols-2 w-full max-w-md mx-auto">
+            <TabsList className="grid grid-cols-3 w-full max-w-md mx-auto">
               <TabsTrigger value="soundMode">Sound Mode</TabsTrigger>
               <TabsTrigger value="beatControl">Beat Control</TabsTrigger>
+              <TabsTrigger value="gridSize">Grid Size</TabsTrigger>
             </TabsList>
             
             <TabsContent value="soundMode" className="mt-4">
@@ -292,6 +294,46 @@ export default function Home() {
                 </div>
               </div>
             </TabsContent>
+            
+            <TabsContent value="gridSize" className="mt-4">
+              <div className="bg-white rounded-xl shadow-sm p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="font-medium">Grid Size</div>
+                  <div className="text-sm text-gray-500">
+                    {gridSizeMultiplier === 1 ? 'Standard' : 
+                     gridSizeMultiplier === 2 ? 'Large' : 'Extra Large'}
+                  </div>
+                </div>
+                
+                <div className="space-y-6">
+                  <div className="w-full">
+                    <div className="flex justify-between text-xs text-gray-500 mb-2">
+                      <span>Standard</span>
+                      <span>Large</span>
+                      <span>Extra Large</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="1" 
+                      max="3" 
+                      step="1" 
+                      value={gridSizeMultiplier}
+                      onChange={(e) => setGridSizeMultiplier(parseInt(e.target.value))}
+                      className="w-full h-2 bg-blue-100 rounded-lg appearance-none cursor-pointer"
+                    />
+                  </div>
+                  
+                  <div className="text-sm text-gray-600">
+                    <p>Choose how many notes you want available:</p>
+                    <ul className="list-disc pl-5 mt-2 space-y-1">
+                      <li>Standard: Perfect for beginners and mobile devices</li>
+                      <li>Large: More notes and octaves to explore</li>
+                      <li>Extra Large: Maximum range for advanced compositions</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
           </Tabs>
 
           {/* Piano Grid */}
@@ -302,6 +344,7 @@ export default function Home() {
             animationsEnabled={animationsEnabled}
             themeColor={themeColor}
             soundMode={currentSoundMode}
+            gridSizeMultiplier={gridSizeMultiplier}
           />
 
           {/* Controls */}
