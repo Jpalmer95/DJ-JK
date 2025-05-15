@@ -10,7 +10,7 @@ const NOTE_FREQUENCIES: Record<string, number> = {
 };
 
 // Sound mode types
-export type SoundMode = 'piano' | 'synth' | 'chiptune' | 'funk';
+export type SoundMode = 'piano' | 'synth' | 'chiptune' | 'funk' | 'custom';
 
 // Beat patterns - time in ms between kick and snare
 export const BEATS = {
@@ -334,8 +334,11 @@ export function decodeRecording(encoded: string): RecordedSequence | null {
   }
 }
 
-// Preload sounds (reference for future use with actual samples)
+// Sound collections
 export const pianoSounds: Record<string, Howl> = {};
+
+// Store custom sounds by note key (e.g. C3, D4, etc.)
+export const customSounds: Record<string, Howl> = {};
 
 export function preloadPianoSounds() {
   // For future implementation with actual samples
@@ -346,4 +349,42 @@ export function preloadPianoSounds() {
   //     volume: 0.8
   //   });
   // });
+}
+
+// Add or update a custom sound for a specific note
+export function setCustomSound(note: string, audioBlob: Blob): void {
+  // Create URL for the audio blob
+  const audioUrl = URL.createObjectURL(audioBlob);
+  
+  // If we already have a sound for this note, unload it
+  if (customSounds[note]) {
+    customSounds[note].unload();
+  }
+  
+  // Create new Howl instance
+  customSounds[note] = new Howl({
+    src: [audioUrl],
+    format: ['webm', 'mp3', 'wav', 'mp4'],
+    volume: 1.0,
+    preload: true,
+    onload: () => {
+      console.log(`Custom sound loaded for note ${note}`);
+    },
+    onloaderror: (_, error) => {
+      console.error(`Error loading custom sound for note ${note}:`, error);
+    }
+  });
+}
+
+// Check if a custom sound exists for a note
+export function hasCustomSound(note: string): boolean {
+  return !!customSounds[note] && customSounds[note].state() === 'loaded';
+}
+
+// Clear all custom sounds
+export function clearCustomSounds(): void {
+  Object.keys(customSounds).forEach(note => {
+    customSounds[note].unload();
+    delete customSounds[note];
+  });
 }

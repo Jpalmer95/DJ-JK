@@ -54,8 +54,12 @@ const BaseTrackUploader = ({ onVolumeChange }: BaseTrackUploaderProps) => {
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = volume;
-      onVolumeChange(volume);
     }
+  }, [volume]);
+  
+  // Notify parent component when volume changes
+  useEffect(() => {
+    onVolumeChange(volume);
   }, [volume, onVolumeChange]);
   
   // Handle file upload
