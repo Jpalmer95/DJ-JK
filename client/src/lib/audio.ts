@@ -372,26 +372,47 @@ export function preloadPianoSounds() {
 
 // Add or update a custom sound for a specific note
 export function setCustomSound(note: string, audioBlob: Blob): void {
-  // Create URL for the audio blob
-  const audioUrl = URL.createObjectURL(audioBlob);
-  
-  // If we already have a sound for this note, unload it
-  if (customSounds[note]) {
-    customSounds[note].unload();
-  }
-  
-  // Create new Howl instance
-  customSounds[note] = new Howl({
-    src: [audioUrl],
-    volume: 1.0,
-    preload: true,
-    onload: () => {
-      console.log(`Custom sound loaded for note ${note}`);
-    },
-    onloaderror: (_, error) => {
-      console.error(`Error loading custom sound for note ${note}:`, error);
+  try {
+    // Create URL for the audio blob
+    const audioUrl = URL.createObjectURL(audioBlob);
+    
+    // If we already have a sound for this note, unload it
+    if (customSounds[note]) {
+      customSounds[note].unload();
+      delete customSounds[note];
     }
-  });
+    
+    // Create an audio element to test the sound first
+    const audio = document.createElement('audio');
+    audio.src = audioUrl;
+    audio.preload = 'auto';
+    
+    // Create new Howl instance after testing
+    audio.oncanplaythrough = () => {
+      customSounds[note] = new Howl({
+        src: [audioUrl],
+        volume: 1.0,
+        preload: true,
+        html5: true, // Force HTML5 Audio to avoid codec issues
+        onload: () => {
+          console.log(`Custom sound loaded for note ${note}`);
+        },
+        onloaderror: (_, error) => {
+          console.error(`Error loading custom sound for note ${note}:`, error);
+          alert(`Failed to load sound for note ${note}. Please try a different file format.`);
+        }
+      });
+    };
+    
+    audio.onerror = () => {
+      console.error(`Error testing audio format for note ${note}`);
+      alert(`This audio format isn't supported by your browser. Please try MP3, WAV or OGG format.`);
+      URL.revokeObjectURL(audioUrl);
+    };
+  } catch (error) {
+    console.error(`Error setting custom sound for note ${note}:`, error);
+    alert(`Failed to set custom sound. Please try a different file.`);
+  }
 }
 
 // Check if a custom sound exists for a note

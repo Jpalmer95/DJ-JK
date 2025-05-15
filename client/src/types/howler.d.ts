@@ -6,6 +6,8 @@ declare module 'howler' {
       preload?: boolean;
       loop?: boolean;
       autoplay?: boolean;
+      html5?: boolean;
+      format?: string[];
       onend?: () => void;
       onload?: () => void;
       onloaderror?: (id: number, error: any) => void;
