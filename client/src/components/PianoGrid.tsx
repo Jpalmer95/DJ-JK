@@ -38,7 +38,8 @@ const SOUND_MODE_COLORS = {
   piano: 'blue',
   synth: 'purple',
   chiptune: 'green',
-  funk: 'pink'
+  funk: 'pink',
+  custom: 'green' // Default color for custom sound mode
 };
 
 interface PianoGridProps {

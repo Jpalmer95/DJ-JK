@@ -251,7 +251,7 @@ export default function Home() {
                   <h3 className="font-medium">Choose Your Instrument</h3>
                 </div>
                 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   <Button 
                     variant={currentSoundMode === 'piano' ? 'default' : 'outline'} 
                     className={`${currentSoundMode === 'piano' ? 'bg-blue-600 text-white' : 'bg-white'} rounded-lg`}
@@ -279,6 +279,14 @@ export default function Home() {
                     onClick={() => handleSoundModeChange('funk')}
                   >
                     Funk
+                  </Button>
+                  <Button 
+                    variant={currentSoundMode === 'custom' ? 'default' : 'outline'} 
+                    className={`${currentSoundMode === 'custom' ? 'bg-green-600 text-white' : 'bg-white'} rounded-lg col-span-2 sm:col-span-3`}
+                    onClick={() => handleSoundModeChange('custom')}
+                  >
+                    <FileAudio className="h-4 w-4 mr-2" />
+                    Custom Sounds
                   </Button>
                 </div>
               </div>

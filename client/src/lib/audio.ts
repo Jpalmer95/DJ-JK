@@ -50,6 +50,14 @@ export function initAudioContext() {
 
 // Play a note using WebAudio API with different instrument sounds
 export function playNote(note: string, volume: number = 0.8, soundMode: SoundMode = 'piano') {
+  // Check if we're in custom sound mode and have a custom sound for this note
+  if (soundMode === 'custom' && hasCustomSound(note)) {
+    const sound = customSounds[note];
+    sound.volume(volume);
+    sound.play();
+    return null; // No oscillator to return for custom sounds
+  }
+  
   if (!audioContext) {
     audioContext = initAudioContext();
   }
@@ -131,6 +139,17 @@ export function playNote(note: string, volume: number = 0.8, soundMode: SoundMod
       gainNode.gain.linearRampToValueAtTime(volume * 0.5, audioContext.currentTime + 0.1);
       gainNode.gain.linearRampToValueAtTime(volume * 0.8, audioContext.currentTime + 0.2);
       gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.8);
+      break;
+      
+    case 'custom':
+      // If we reached here, we don't have a custom sound for this note
+      // Fall back to piano sound
+      oscillator.type = 'sine';
+      gainNode.gain.value = 0;
+      gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+      gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.02);
+      gainNode.gain.linearRampToValueAtTime(volume * 0.7, audioContext.currentTime + 0.1);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 1.5);
       break;
   }
   
@@ -364,7 +383,6 @@ export function setCustomSound(note: string, audioBlob: Blob): void {
   // Create new Howl instance
   customSounds[note] = new Howl({
     src: [audioUrl],
-    format: ['webm', 'mp3', 'wav', 'mp4'],
     volume: 1.0,
     preload: true,
     onload: () => {
