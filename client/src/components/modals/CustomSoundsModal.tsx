@@ -319,6 +319,20 @@ const CustomSoundsModal = ({ isOpen, onClose }: CustomSoundsModalProps) => {
     setIsEditMode(!isEditMode);
   };
   
+  // Apply library sound to selected note
+  const applyLibrarySound = (librarySound: LibrarySound) => {
+    if (!librarySound || !librarySound.blob) {
+      alert('No sound selected or sound is invalid.');
+      return;
+    }
+    
+    setCustomSound(selectedNote, librarySound.blob);
+    refreshUploadedSounds();
+    
+    // Show feedback
+    console.log(`Applied "${librarySound.name}" to note ${selectedNote}`);
+  };
+  
   // Handle drop for drag-and-drop functionality
   const handleSoundDrop = (sourceItem: { note: string }, targetNote: string) => {
     if (sourceItem.note === targetNote) return; // No need to move to same position
@@ -377,10 +391,11 @@ const CustomSoundsModal = ({ isOpen, onClose }: CustomSoundsModalProps) => {
         {isEditMode ? (
           <DndProvider backend={HTML5Backend}>
             <div className="space-y-4">
-              <Tabs defaultValue="upload" value={currentTab} onValueChange={(val) => setCurrentTab(val as 'upload' | 'record' | 'arrange')}>
-                <TabsList className="grid w-full grid-cols-3">
+              <Tabs defaultValue="upload" value={currentTab} onValueChange={(val) => setCurrentTab(val as 'upload' | 'record' | 'library' | 'arrange')}>
+                <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="upload">Upload</TabsTrigger>
                   <TabsTrigger value="record">Record</TabsTrigger>
+                  <TabsTrigger value="library">Library</TabsTrigger>
                   <TabsTrigger value="arrange">Arrange</TabsTrigger>
                 </TabsList>
                 
@@ -513,6 +528,89 @@ const CustomSoundsModal = ({ isOpen, onClose }: CustomSoundsModalProps) => {
                           src={recordingPreviewUrl}
                           className="hidden"
                         />
+                      )}
+                    </div>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="library" className="mt-4">
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                      <Music className="h-4 w-4 mr-2" />
+                      Sound Library
+                    </h3>
+                    <p className="text-xs text-gray-500 mb-4">
+                      Reuse sounds you've previously recorded or uploaded.
+                    </p>
+                    
+                    <div className="grid gap-4">
+                      <div>
+                        <Label htmlFor="note-select-library" className="block text-sm font-medium text-gray-700 mb-1">
+                          Select Note
+                        </Label>
+                        <select 
+                          id="note-select-library"
+                          value={selectedNote}
+                          onChange={(e) => setSelectedNote(e.target.value)}
+                          className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        >
+                          {AVAILABLE_NOTES.map((note) => (
+                            <option key={note} value={note}>
+                              {note} {hasCustomSound(note) ? '(Custom sound assigned)' : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      <div className="mt-2">
+                        <h4 className="text-sm font-medium mb-2">Available Sounds</h4>
+                        
+                        {soundLibrary.length > 0 ? (
+                          <div className="max-h-48 overflow-y-auto border rounded-md">
+                            {soundLibrary.map((sound, index) => (
+                              <div 
+                                key={index}
+                                className={`p-2 cursor-pointer hover:bg-gray-100 flex justify-between items-center ${
+                                  selectedLibrarySound === sound ? 'bg-blue-50 border-l-4 border-blue-500' : ''
+                                }`}
+                                onClick={() => setSelectedLibrarySound(sound)}
+                              >
+                                <div>
+                                  <div className="font-medium text-sm">{sound.name}</div>
+                                  <div className="text-xs text-gray-500">
+                                    {new Date(sound.timestamp).toLocaleString()}
+                                  </div>
+                                </div>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedLibrarySound(sound);
+                                    applyLibrarySound(sound);
+                                  }}
+                                  className="h-8 rounded-full"
+                                >
+                                  <Play className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="py-8 text-center text-gray-500">
+                            <p>No sounds in library.</p>
+                            <p className="text-sm mt-1">Upload or record sounds first.</p>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {selectedLibrarySound && (
+                        <Button
+                          onClick={() => applyLibrarySound(selectedLibrarySound)}
+                          className="w-full mt-2"
+                        >
+                          Apply to {selectedNote}
+                        </Button>
                       )}
                     </div>
                   </div>
