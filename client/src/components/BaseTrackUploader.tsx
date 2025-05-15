@@ -63,9 +63,10 @@ const BaseTrackUploader = ({ onVolumeChange }: BaseTrackUploaderProps) => {
     if (e.target.files && e.target.files[0]) {
       const uploadedFile = e.target.files[0];
       
-      // Check if it's an audio file or MP4 video (which also has audio)
-      if (!uploadedFile.type.startsWith('audio/') && uploadedFile.type !== 'video/mp4') {
-        alert('Please upload an audio file (MP3, WAV) or video file (MP4)');
+      // Check if it's an audio file or video (which also has audio)
+      const acceptedVideoTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/hevc'];
+      if (!uploadedFile.type.startsWith('audio/') && !acceptedVideoTypes.includes(uploadedFile.type)) {
+        alert('Please upload an audio file (MP3, WAV) or video file (MP4, MOV, HEVC)');
         return;
       }
       
@@ -173,7 +174,7 @@ const BaseTrackUploader = ({ onVolumeChange }: BaseTrackUploaderProps) => {
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
           <input
             type="file"
-            accept="audio/*,video/mp4"
+            accept="audio/*,video/mp4,video/quicktime,video/x-msvideo,video/hevc"
             onChange={handleFileChange}
             className="hidden"
             ref={fileInputRef}
@@ -187,7 +188,7 @@ const BaseTrackUploader = ({ onVolumeChange }: BaseTrackUploaderProps) => {
             Upload Audio/Video File
           </Button>
           <p className="text-sm text-gray-500">
-            Upload an MP3, WAV, MP4 or other audio file to use as background music
+            Upload an MP3, WAV, MP4, MOV, HEVC or other audio/video file to use as background music
           </p>
         </div>
       ) : (
