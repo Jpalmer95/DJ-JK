@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X, Trash, Music, Upload, Mic, Square, Play, Edit2, Save, Move } from "lucide-react";
-import { hasCustomSound, setCustomSound, clearCustomSounds } from "@/lib/audio";
+import { hasCustomSound, setCustomSound, clearCustomSounds, getSoundLibrary, LibrarySound } from "@/lib/audio";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -35,14 +35,13 @@ interface DraggableSoundProps {
 const DraggableSound: React.FC<DraggableSoundProps> = ({ note, onDragStart }) => {
   const [{ isDragging }, drag] = useDrag(() => ({
     type: ItemTypes.SOUND,
-    item: { note },
-    collect: (monitor) => ({
-      isDragging: !!monitor.isDragging(),
-    }),
-    begin: () => {
+    item: () => {
       if (onDragStart) onDragStart();
       return { note };
     },
+    collect: (monitor) => ({
+      isDragging: !!monitor.isDragging(),
+    }),
   }));
 
   return (
@@ -103,8 +102,10 @@ const CustomSoundsModal = ({ isOpen, onClose }: CustomSoundsModalProps) => {
   const [selectedNote, setSelectedNote] = useState<string>(AVAILABLE_NOTES[0]);
   const [uploadedSounds, setUploadedSounds] = useState<string[]>([]);
   const [isEditMode, setIsEditMode] = useState<boolean>(true);
-  const [currentTab, setCurrentTab] = useState<'upload' | 'record' | 'arrange'>('upload');
+  const [currentTab, setCurrentTab] = useState<'upload' | 'record' | 'library' | 'arrange'>('upload');
   const [draggedSound, setDraggedSound] = useState<string | null>(null);
+  const [soundLibrary, setSoundLibrary] = useState<LibrarySound[]>([]);
+  const [selectedLibrarySound, setSelectedLibrarySound] = useState<LibrarySound | null>(null);
   
   // Grid state for arrangement
   const [soundArrangement, setSoundArrangement] = useState<Record<string, string>>({});
@@ -124,8 +125,15 @@ const CustomSoundsModal = ({ isOpen, onClose }: CustomSoundsModalProps) => {
   useEffect(() => {
     if (isOpen) {
       refreshUploadedSounds();
+      loadSoundLibrary();
     }
   }, [isOpen]);
+  
+  // Load sounds from library
+  const loadSoundLibrary = () => {
+    const sounds = getSoundLibrary();
+    setSoundLibrary(sounds);
+  };
   
   // Refresh the list of uploaded sounds
   const refreshUploadedSounds = () => {

@@ -356,6 +356,51 @@ export function decodeRecording(encoded: string): RecordedSequence | null {
 // Sound collections
 export const pianoSounds: Record<string, Howl> = {};
 
+// Sound library to store and reuse recorded sounds
+export interface LibrarySound {
+  name: string;
+  blob: Blob;
+  timestamp: number;
+  type: string;
+}
+
+export const soundLibrary: LibrarySound[] = [];
+
+// Add a sound to the library
+export function addSoundToLibrary(name: string, blob: Blob): void {
+  // Check if sound with same name exists
+  const existingIndex = soundLibrary.findIndex(s => s.name === name);
+  if (existingIndex >= 0) {
+    // Replace existing sound
+    soundLibrary[existingIndex] = {
+      name,
+      blob,
+      timestamp: Date.now(),
+      type: blob.type
+    };
+  } else {
+    // Add new sound
+    soundLibrary.push({
+      name,
+      blob,
+      timestamp: Date.now(),
+      type: blob.type
+    });
+  }
+  
+  // Limit library size to 20 sounds
+  if (soundLibrary.length > 20) {
+    soundLibrary.sort((a, b) => b.timestamp - a.timestamp);
+    soundLibrary.length = 20;
+  }
+}
+
+// Get all sounds from the library
+export function getSoundLibrary(): LibrarySound[] {
+  // Return a sorted copy, most recent first
+  return [...soundLibrary].sort((a, b) => b.timestamp - a.timestamp);
+}
+
 // Store custom sounds by note key (e.g. C3, D4, etc.)
 export const customSounds: Record<string, Howl> = {};
 
@@ -375,6 +420,9 @@ export function setCustomSound(note: string, audioBlob: Blob): void {
   try {
     // Create URL for the audio blob
     const audioUrl = URL.createObjectURL(audioBlob);
+    
+    // Also add to sound library for reuse
+    addSoundToLibrary(`Sound for ${note}`, audioBlob);
     
     // If we already have a sound for this note, unload it and clean up
     if (customSounds[note]) {
