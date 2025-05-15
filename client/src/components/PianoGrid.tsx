@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, forwardRef, useImperativeHandle } from "r
 import { motion } from "framer-motion";
 import PianoKey from "./PianoKey";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { playNote } from "@/lib/audio";
+import { playNote, type SoundMode } from "@/lib/audio";
 
 // Define piano notes for our grid
 const NOTES = [
@@ -31,21 +31,37 @@ const THEME_COLORS = {
   ]
 };
 
+// Configure sound mode colors
+const SOUND_MODE_COLORS = {
+  piano: 'blue',
+  synth: 'purple',
+  chiptune: 'green',
+  funk: 'pink'
+};
+
 interface PianoGridProps {
   onNotePlayed: (noteIndex: number) => void;
   volume: number;
   animationsEnabled: boolean;
   themeColor: string;
+  soundMode?: SoundMode;
 }
 
 const PianoGrid = forwardRef<any, PianoGridProps>(({ 
   onNotePlayed, 
   volume, 
   animationsEnabled, 
-  themeColor = "blue" 
+  themeColor = "blue",
+  soundMode = "piano"
 }, ref) => {
   const isMobile = useIsMobile();
   const [activeKey, setActiveKey] = useState<number | null>(null);
+  
+  // Get effective theme color - either selected or based on sound mode
+  const effectiveThemeColor = useMemo(() => {
+    const soundModeColor = SOUND_MODE_COLORS[soundMode];
+    return soundModeColor || themeColor;
+  }, [themeColor, soundMode]);
   
   // Determine grid size based on screen size
   const gridSize = useMemo(() => {
@@ -57,14 +73,14 @@ const PianoGrid = forwardRef<any, PianoGridProps>(({
   const gridNotes = useMemo(() => {
     return Array.from({ length: gridSize }, (_, i) => ({
       note: NOTES[i % NOTES.length],
-      colorClass: THEME_COLORS[themeColor as keyof typeof THEME_COLORS][i % THEME_COLORS[themeColor as keyof typeof THEME_COLORS].length]
+      colorClass: THEME_COLORS[effectiveThemeColor as keyof typeof THEME_COLORS][i % THEME_COLORS[effectiveThemeColor as keyof typeof THEME_COLORS].length]
     }));
-  }, [gridSize, themeColor]);
+  }, [gridSize, effectiveThemeColor]);
   
   // Handle key click
   const handleKeyClick = (index: number) => {
     setActiveKey(index);
-    playNote(gridNotes[index].note, volume);
+    playNote(gridNotes[index].note, volume, soundMode);
     onNotePlayed(index);
     
     // Reset active key after animation
