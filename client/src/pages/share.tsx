@@ -1,0 +1,180 @@
+import { useState, useEffect, useCallback } from "react";
+import { useRoute } from "wouter";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, Play } from "lucide-react";
+import { Link } from "wouter";
+import { apiRequest } from "@/lib/queryClient";
+import { decodeRecording, RecordedSequence, playNote, startBeat, stopBeat } from "@/lib/audio";
+import PianoGrid from "@/components/PianoGrid";
+
+export default function Share() {
+  const [, params] = useRoute<{ id: string }>("/share/:id");
+  const { toast } = useToast();
+  const [recording, setRecording] = useState<RecordedSequence | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [volume] = useState(0.8);
+  
+  // Fetch the shared recording
+  useEffect(() => {
+    if (!params?.id) return;
+    
+    const fetchRecording = async () => {
+      try {
+        setIsLoading(true);
+        const response = await apiRequest<{ recording: string }>(`/api/share/${params.id}`);
+        
+        if (response && response.recording) {
+          const decodedRecording = decodeRecording(response.recording);
+          if (decodedRecording) {
+            setRecording(decodedRecording);
+          } else {
+            throw new Error('Invalid recording data');
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching recording:', error);
+        toast({
+          title: "Failed to load recording",
+          description: "This shared music piece couldn't be loaded.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchRecording();
+  }, [params?.id, toast]);
+  
+  // Play the recording
+  const playRecording = useCallback(() => {
+    if (!recording || isPlaying) return;
+    
+    setIsPlaying(true);
+    
+    // Start the beat if one was used
+    if (recording.beatPattern && recording.beatPattern !== 'none') {
+      startBeat(recording.beatPattern, volume);
+    }
+    
+    // Play each note at its recorded time
+    recording.notes.forEach(note => {
+      setTimeout(() => {
+        const gridElement = document.querySelector(`[data-note-index="${note.noteIndex}"]`);
+        if (gridElement) {
+          gridElement.classList.add('played');
+          setTimeout(() => gridElement.classList.remove('played'), 300);
+        }
+        
+        // Find the note name from PianoGrid component
+        const noteElements = document.querySelectorAll('.note-label');
+        const noteName = noteElements[note.noteIndex]?.textContent || 'C4';
+        
+        // Play the note with the recorded sound mode
+        playNote(noteName, volume, recording.soundMode);
+      }, note.time);
+    });
+    
+    // Calculate total duration of the recording
+    const lastNote = recording.notes.reduce((max, note) => 
+      note.time > max.time ? note : max, recording.notes[0]);
+      
+    // Set a timeout to mark when playback is done
+    setTimeout(() => {
+      setIsPlaying(false);
+      stopBeat();
+    }, lastNote.time + 1500);
+    
+  }, [recording, volume, isPlaying]);
+  
+  return (
+    <div className="min-h-screen w-full font-inter text-gray-800">
+      {/* Header */}
+      <header className="w-full py-4 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto flex justify-between items-center">
+          <h1 className="text-2xl sm:text-3xl font-bold font-poppins text-blue-600">
+            Shared Music
+          </h1>
+          <Link href="/">
+            <Button variant="outline" className="rounded-full shadow-sm hover:bg-gray-50">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Studio
+            </Button>
+          </Link>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="w-full px-4 sm:px-6 lg:px-8 py-6">
+        <div className="max-w-4xl mx-auto">
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+              <p className="text-gray-600">Loading shared creation...</p>
+            </div>
+          ) : recording ? (
+            <>
+              <div className="mb-6 bg-white rounded-xl shadow-sm p-4 text-center">
+                <p className="text-gray-600">
+                  Someone shared a musical creation with you! 
+                  Press play to listen.
+                </p>
+              </div>
+              
+              {/* Display the grid (readonly) */}
+              <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3 sm:gap-4 mb-8">
+                {recording.notes.length > 0 && Array.from({ length: Math.max(...recording.notes.map(n => n.noteIndex)) + 1 }, (_, i) => (
+                  <div 
+                    key={i}
+                    data-note-index={i}
+                    className={`bg-blue-500 rounded-xl shadow-md flex items-center justify-center aspect-square relative overflow-hidden`}
+                  >
+                    <span className="note-label text-xs text-white text-opacity-60 absolute bottom-1 right-1 font-medium">
+                      {/* Note name would be here */}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Playback controls */}
+              <div className="flex justify-center mt-6">
+                <Button
+                  className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-full shadow-md"
+                  onClick={playRecording}
+                  disabled={isPlaying}
+                >
+                  <Play className="h-5 w-5 mr-2" />
+                  {isPlaying ? "Playing..." : "Play Music"}
+                </Button>
+              </div>
+              
+              {/* Info about the shared piece */}
+              <div className="mt-8 text-center text-sm text-gray-500">
+                <p>This piece uses the "{recording.soundMode}" sound with
+                {recording.beatPattern !== 'none' 
+                  ? ` a "${recording.beatPattern}" beat pattern.` 
+                  : ' no background beat.'}
+                </p>
+                <p className="mt-2">It contains {recording.notes.length} notes.</p>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-12">
+              <h2 className="text-xl font-semibold text-gray-700 mb-2">Recording Not Found</h2>
+              <p className="text-gray-600 mb-6">
+                The shared music piece you're looking for doesn't exist or has been removed.
+              </p>
+              <Link href="/">
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                  Create Your Own
+                </Button>
+              </Link>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}

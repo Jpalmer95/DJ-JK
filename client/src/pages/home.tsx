@@ -1,10 +1,22 @@
 import { useState, useRef, useEffect } from "react";
-import { HelpCircle, Settings, RefreshCw, MicIcon, StopCircle, Play } from "lucide-react";
+import { HelpCircle, Settings, RefreshCw, MicIcon, StopCircle, Play, Share2, Music } from "lucide-react";
 import PianoGrid from "@/components/PianoGrid";
 import HelpModal from "@/components/modals/HelpModal";
 import SettingsModal from "@/components/modals/SettingsModal";
+import ShareModal from "@/components/modals/ShareModal";
 import { Button } from "@/components/ui/button";
-import { initAudioContext } from "@/lib/audio";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { 
+  initAudioContext, 
+  playNote, 
+  type SoundMode, 
+  type BeatPattern, 
+  startBeat, 
+  stopBeat 
+} from "@/lib/audio";
 
 // Define the types for our recorded notes
 interface RecordedNote {
@@ -13,14 +25,25 @@ interface RecordedNote {
 }
 
 export default function Home() {
+  // UI State
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  
+  // Recording State
   const [isRecording, setIsRecording] = useState(false);
   const [recordedSequence, setRecordedSequence] = useState<RecordedNote[]>([]);
   const [hasRecorded, setHasRecorded] = useState(false);
+  
+  // Audio Settings
   const [volume, setVolume] = useState(0.8);
   const [animationsEnabled, setAnimationsEnabled] = useState(true);
   const [themeColor, setThemeColor] = useState<string>("blue");
+  
+  // New Sound Mode Features
+  const [currentSoundMode, setCurrentSoundMode] = useState<SoundMode>("piano");
+  const [currentBeatPattern, setCurrentBeatPattern] = useState<BeatPattern>("none");
+  const [beatEnabled, setBeatEnabled] = useState(false);
   
   const recordingStartTimeRef = useRef<number | null>(null);
   const pianoGridRef = useRef<any>(null);
@@ -47,6 +70,19 @@ export default function Home() {
       window.removeEventListener("click", initAudio);
     };
   }, []);
+  
+  // Manage background beat
+  useEffect(() => {
+    if (beatEnabled) {
+      startBeat(currentBeatPattern, volume);
+    } else {
+      stopBeat();
+    }
+    
+    return () => {
+      stopBeat();
+    };
+  }, [beatEnabled, currentBeatPattern, volume]);
 
   // Handle note played
   const handleNotePlayed = (noteIndex: number) => {
@@ -87,11 +123,24 @@ export default function Home() {
   const playbackRecording = () => {
     if (recordedSequence.length === 0 || !pianoGridRef.current) return;
     
+    // If there's a beat and it's enabled, start it for playback
+    if (beatEnabled && currentBeatPattern !== 'none') {
+      startBeat(currentBeatPattern, volume);
+    }
+    
     recordedSequence.forEach(item => {
       setTimeout(() => {
         pianoGridRef.current.playNoteByIndex(item.noteIndex);
       }, item.time);
     });
+    
+    // Calculate when playback will finish to stop the beat
+    if (beatEnabled && currentBeatPattern !== 'none') {
+      const lastNoteTime = Math.max(...recordedSequence.map(note => note.time));
+      setTimeout(() => {
+        if (!beatEnabled) stopBeat();
+      }, lastNoteTime + 1000);
+    }
   };
 
   // Reset everything
@@ -102,6 +151,21 @@ export default function Home() {
     recordingStartTimeRef.current = null;
   };
 
+  // Change sound mode
+  const handleSoundModeChange = (mode: SoundMode) => {
+    setCurrentSoundMode(mode);
+  };
+  
+  // Change beat pattern
+  const handleBeatPatternChange = (pattern: BeatPattern) => {
+    setCurrentBeatPattern(pattern);
+  };
+  
+  // Toggle beat on/off
+  const toggleBeat = (enabled: boolean) => {
+    setBeatEnabled(enabled);
+  };
+
   // Save settings
   const handleSaveSettings = (newVolume: number, newAnimationsEnabled: boolean, newThemeColor: string) => {
     setVolume(newVolume);
@@ -109,13 +173,22 @@ export default function Home() {
     setThemeColor(newThemeColor);
     setIsSettingsOpen(false);
   };
+  
+  // Get the full recording data for sharing
+  const getRecordingData = () => {
+    return {
+      notes: recordedSequence,
+      soundMode: currentSoundMode,
+      beatPattern: beatEnabled ? currentBeatPattern : 'none'
+    };
+  };
 
   return (
     <div className="min-h-screen w-full font-inter text-gray-800">
       {/* Header */}
       <header className="w-full py-4 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto flex justify-between items-center">
-          <h1 className="text-2xl sm:text-3xl font-bold font-poppins text-blue-600">Piano Tiles</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold font-poppins text-blue-600">Music Studio</h1>
           <div className="flex space-x-3">
             <Button 
               variant="outline" 
@@ -140,10 +213,86 @@ export default function Home() {
       {/* Main Content */}
       <main className="w-full px-4 sm:px-6 lg:px-8 py-6">
         <div className="max-w-4xl mx-auto">
-          {/* Instructions */}
-          <div className="mb-6 bg-white rounded-xl shadow-sm p-4 text-center">
-            <p className="text-gray-600">Tap on the tiles to play piano notes!</p>
-          </div>
+          {/* Instrument Selector Tabs */}
+          <Tabs defaultValue="soundMode" className="mb-6">
+            <TabsList className="grid grid-cols-2 w-full max-w-md mx-auto">
+              <TabsTrigger value="soundMode">Sound Mode</TabsTrigger>
+              <TabsTrigger value="beatControl">Beat Control</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="soundMode" className="mt-4">
+              <div className="bg-white rounded-xl shadow-sm p-4">
+                <div className="flex items-center mb-3">
+                  <Music className="h-5 w-5 text-gray-600 mr-2" />
+                  <h3 className="font-medium">Choose Your Instrument</h3>
+                </div>
+                
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <Button 
+                    variant={currentSoundMode === 'piano' ? 'default' : 'outline'} 
+                    className={`${currentSoundMode === 'piano' ? 'bg-blue-600 text-white' : 'bg-white'} rounded-lg`}
+                    onClick={() => handleSoundModeChange('piano')}
+                  >
+                    Piano
+                  </Button>
+                  <Button 
+                    variant={currentSoundMode === 'synth' ? 'default' : 'outline'} 
+                    className={`${currentSoundMode === 'synth' ? 'bg-purple-600 text-white' : 'bg-white'} rounded-lg`}
+                    onClick={() => handleSoundModeChange('synth')}
+                  >
+                    Synth
+                  </Button>
+                  <Button 
+                    variant={currentSoundMode === 'chiptune' ? 'default' : 'outline'} 
+                    className={`${currentSoundMode === 'chiptune' ? 'bg-green-600 text-white' : 'bg-white'} rounded-lg`}
+                    onClick={() => handleSoundModeChange('chiptune')}
+                  >
+                    Chiptune
+                  </Button>
+                  <Button 
+                    variant={currentSoundMode === 'funk' ? 'default' : 'outline'} 
+                    className={`${currentSoundMode === 'funk' ? 'bg-pink-600 text-white' : 'bg-white'} rounded-lg`}
+                    onClick={() => handleSoundModeChange('funk')}
+                  >
+                    Funk
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="beatControl" className="mt-4">
+              <div className="bg-white rounded-xl shadow-sm p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="font-medium">Background Beat</div>
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="airplane-mode" 
+                      checked={beatEnabled}
+                      onCheckedChange={toggleBeat}
+                    />
+                    <Label htmlFor="airplane-mode">{beatEnabled ? 'On' : 'Off'}</Label>
+                  </div>
+                </div>
+                
+                <div className={`transition-opacity ${beatEnabled ? 'opacity-100' : 'opacity-50'}`}>
+                  <Select 
+                    value={currentBeatPattern} 
+                    onValueChange={(val) => handleBeatPatternChange(val as BeatPattern)}
+                    disabled={!beatEnabled}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a beat pattern" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="basic">Basic Beat (4/4)</SelectItem>
+                      <SelectItem value="groove">Groove Beat (Syncopated)</SelectItem>
+                      <SelectItem value="electro">Electronic Beat (Fast)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
 
           {/* Piano Grid */}
           <PianoGrid 
@@ -152,10 +301,11 @@ export default function Home() {
             volume={volume}
             animationsEnabled={animationsEnabled}
             themeColor={themeColor}
+            soundMode={currentSoundMode}
           />
 
           {/* Controls */}
-          <div className="flex justify-center space-x-4 mt-8">
+          <div className="flex flex-wrap justify-center gap-3 mt-8">
             <Button 
               variant="outline" 
               className="px-4 py-2 bg-white shadow-sm hover:bg-gray-50 text-gray-700 font-medium"
@@ -184,14 +334,25 @@ export default function Home() {
             </Button>
             
             {hasRecorded && (
-              <Button 
-                variant="default"
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 shadow-sm text-white font-medium"
-                onClick={playbackRecording}
-              >
-                <Play className="h-4 w-4 mr-2" />
-                Play
-              </Button>
+              <>
+                <Button 
+                  variant="default"
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 shadow-sm text-white font-medium"
+                  onClick={playbackRecording}
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  Play
+                </Button>
+                
+                <Button 
+                  variant="default"
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 shadow-sm text-white font-medium"
+                  onClick={() => setIsShareOpen(true)}
+                >
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Share
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -210,6 +371,12 @@ export default function Home() {
         animationsEnabled={animationsEnabled}
         themeColor={themeColor}
         onSave={handleSaveSettings}
+      />
+      
+      <ShareModal
+        isOpen={isShareOpen}
+        onClose={() => setIsShareOpen(false)}
+        recording={hasRecorded ? getRecordingData() : null}
       />
     </div>
   );
