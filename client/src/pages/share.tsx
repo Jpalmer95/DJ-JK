@@ -66,14 +66,13 @@ export default function Share() {
         if (gridElement) {
           gridElement.classList.add('played');
           setTimeout(() => gridElement.classList.remove('played'), 300);
+          
+          // Get the note name from the data attribute
+          const noteName = gridElement.getAttribute('data-note') || 'C4';
+          
+          // Play the note with the recorded sound mode
+          playNote(noteName, volume, recording.soundMode);
         }
-        
-        // Find the note name from PianoGrid component
-        const noteElements = document.querySelectorAll('.note-label');
-        const noteName = noteElements[note.noteIndex]?.textContent || 'C4';
-        
-        // Play the note with the recorded sound mode
-        playNote(noteName, volume, recording.soundMode);
       }, note.time);
     });
     
@@ -125,17 +124,68 @@ export default function Share() {
               
               {/* Display the grid (readonly) */}
               <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3 sm:gap-4 mb-8">
-                {recording.notes.length > 0 && Array.from({ length: Math.max(...recording.notes.map(n => n.noteIndex)) + 1 }, (_, i) => (
-                  <div 
-                    key={i}
-                    data-note-index={i}
-                    className={`bg-blue-500 rounded-xl shadow-md flex items-center justify-center aspect-square relative overflow-hidden`}
-                  >
-                    <span className="note-label text-xs text-white text-opacity-60 absolute bottom-1 right-1 font-medium">
-                      {/* Note name would be here */}
-                    </span>
-                  </div>
-                ))}
+                {recording.notes.length > 0 && (() => {
+                  // Define piano notes for our grid (same as in PianoGrid component)
+                  const NOTES = [
+                    'C3', 'D3', 'E3', 'F3', 'G3', 'A3', 'B3',
+                    'C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4',
+                    'C5', 'D5', 'E5', 'F5', 'G5', 'A5', 'B5'
+                  ];
+                  
+                  // Get theme color based on sound mode
+                  const getThemeColor = (soundMode: string) => {
+                    const colorMap: Record<string, string> = {
+                      'piano': 'blue',
+                      'synth': 'purple',
+                      'chiptune': 'green',
+                      'funk': 'pink'
+                    };
+                    return colorMap[soundMode] || 'blue';
+                  };
+                  
+                  // Configure theme colors (same as PianoGrid)
+                  const THEME_COLORS: Record<string, string[]> = {
+                    blue: [
+                      'bg-blue-400', 'bg-blue-500', 'bg-blue-600',
+                      'bg-indigo-400', 'bg-indigo-500', 'bg-indigo-600'
+                    ],
+                    purple: [
+                      'bg-purple-400', 'bg-purple-500', 'bg-purple-600',
+                      'bg-indigo-400', 'bg-indigo-500', 'bg-indigo-600'
+                    ],
+                    pink: [
+                      'bg-pink-400', 'bg-pink-500', 'bg-pink-600',
+                      'bg-rose-400', 'bg-rose-500', 'bg-rose-600'
+                    ],
+                    green: [
+                      'bg-green-400', 'bg-green-500', 'bg-green-600',
+                      'bg-emerald-400', 'bg-emerald-500', 'bg-emerald-600'
+                    ]
+                  };
+                  
+                  const themeColor = getThemeColor(recording.soundMode);
+                  const maxNoteIndex = Math.max(...recording.notes.map(n => n.noteIndex)) + 1;
+                  
+                  return Array.from({ length: maxNoteIndex }, (_, i) => {
+                    const noteIndex = i % NOTES.length;
+                    const note = NOTES[noteIndex];
+                    const colorIndex = i % THEME_COLORS[themeColor].length;
+                    const colorClass = THEME_COLORS[themeColor][colorIndex];
+                    
+                    return (
+                      <div 
+                        key={i}
+                        data-note-index={i}
+                        data-note={note}
+                        className={`${colorClass} rounded-xl shadow-md flex items-center justify-center aspect-square relative overflow-hidden`}
+                      >
+                        <span className="note-label text-xs text-white text-opacity-60 absolute bottom-1 right-1 font-medium">
+                          {note}
+                        </span>
+                      </div>
+                    );
+                  });
+                })()}
               </div>
               
               {/* Playback controls */}
