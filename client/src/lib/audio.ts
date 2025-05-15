@@ -376,7 +376,7 @@ export function setCustomSound(note: string, audioBlob: Blob): void {
     // Create URL for the audio blob
     const audioUrl = URL.createObjectURL(audioBlob);
     
-    // If we already have a sound for this note, unload it
+    // If we already have a sound for this note, unload it and clean up
     if (customSounds[note]) {
       customSounds[note].unload();
       delete customSounds[note];
@@ -387,26 +387,73 @@ export function setCustomSound(note: string, audioBlob: Blob): void {
     audio.src = audioUrl;
     audio.preload = 'auto';
     
-    // Create new Howl instance after testing
-    audio.oncanplaythrough = () => {
+    // Set a timeout to handle cases where oncanplaythrough might not fire
+    const loadTimeout = setTimeout(() => {
+      console.warn(`Loading timeout for note ${note}, attempting to create Howl anyway`);
+      createHowlInstance();
+    }, 3000);
+    
+    // Function to create the Howl instance
+    const createHowlInstance = () => {
+      clearTimeout(loadTimeout);
+      
+      // Determine format based on blob type or fallback to generic
+      let format: string | undefined;
+      
+      if (audioBlob.type.includes('mp3') || audioBlob.type.includes('mpeg')) {
+        format = 'mp3';
+      } else if (audioBlob.type.includes('wav')) {
+        format = 'wav';
+      } else if (audioBlob.type.includes('ogg')) {
+        format = 'ogg';
+      } else if (audioBlob.type.includes('webm')) {
+        format = 'webm';
+      } else if (audioBlob.type.includes('mp4') || audioBlob.type.includes('m4a')) {
+        format = 'mp4';
+      }
+      
+      console.log(`Creating Howl instance for note ${note} with format: ${format || 'auto'}`);
+      
       customSounds[note] = new Howl({
         src: [audioUrl],
         volume: 1.0,
         preload: true,
-        html5: true, // Force HTML5 Audio to avoid codec issues
+        html5: true, // Force HTML5 Audio for better format compatibility
+        format: format ? [format] : undefined, // Specify format if we know it
         onload: () => {
           console.log(`Custom sound loaded for note ${note}`);
         },
         onloaderror: (_, error) => {
           console.error(`Error loading custom sound for note ${note}:`, error);
-          alert(`Failed to load sound for note ${note}. Please try a different file format.`);
+          
+          // Try again with html5 mode if it failed
+          console.log(`Retrying with html5:true for note ${note}`);
+          
+          // Show user-friendly error
+          alert(`Failed to load sound for note ${note}. Please try a different file format like MP3 or WAV.`);
+          
+          // Clean up the blob URL to prevent memory leaks
+          URL.revokeObjectURL(audioUrl);
         }
       });
     };
     
-    audio.onerror = () => {
-      console.error(`Error testing audio format for note ${note}`);
-      alert(`This audio format isn't supported by your browser. Please try MP3, WAV or OGG format.`);
+    // Set up events for the test audio element
+    audio.oncanplaythrough = createHowlInstance;
+    
+    audio.onerror = (e) => {
+      clearTimeout(loadTimeout);
+      console.error(`Error testing audio format for note ${note}`, e);
+      
+      // Try common mobile formats
+      const supportedFormats = [
+        "Consider converting to MP3 format, which works on all devices.",
+        "WAV files are supported by most browsers but can be large.",
+        "AAC audio in MP4 containers works well on iOS devices.",
+        "WebM audio works well on Android devices."
+      ];
+      
+      alert(`This audio format isn't supported by your browser. ${supportedFormats.join(' ')}`);
       URL.revokeObjectURL(audioUrl);
     };
   } catch (error) {

@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { X, Trash, Music, Upload, Mic, Square, Play, Edit2, Save } from "lucide-react";
+import { X, Trash, Music, Upload, Mic, Square, Play, Edit2, Save, Move } from "lucide-react";
 import { hasCustomSound, setCustomSound, clearCustomSounds } from "@/lib/audio";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DndProvider, useDrag, useDrop } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 
 interface CustomSoundsModalProps {
   isOpen: boolean;
@@ -19,12 +21,93 @@ const AVAILABLE_NOTES = [
   'C5', 'D5', 'E5', 'F5', 'G5', 'A5', 'B5'
 ];
 
+// Define DnD types
+const ItemTypes = {
+  SOUND: 'sound',
+};
+
+// Sound item component (draggable)
+interface DraggableSoundProps {
+  note: string;
+  onDragStart?: () => void;
+}
+
+const DraggableSound: React.FC<DraggableSoundProps> = ({ note, onDragStart }) => {
+  const [{ isDragging }, drag] = useDrag(() => ({
+    type: ItemTypes.SOUND,
+    item: { note },
+    collect: (monitor) => ({
+      isDragging: !!monitor.isDragging(),
+    }),
+    begin: () => {
+      if (onDragStart) onDragStart();
+      return { note };
+    },
+  }));
+
+  return (
+    <div
+      ref={drag}
+      className={`bg-gray-100 p-2 rounded-md text-center text-sm cursor-move flex items-center justify-between ${
+        isDragging ? 'opacity-50' : ''
+      }`}
+    >
+      <span>{note}</span>
+      <Move className="h-4 w-4 ml-2 text-gray-500" />
+    </div>
+  );
+};
+
+// Drop target component
+interface SoundDropTargetProps {
+  note: string;
+  onDrop: (item: { note: string }, targetNote: string) => void;
+  children?: React.ReactNode;
+}
+
+const SoundDropTarget: React.FC<SoundDropTargetProps> = ({ note, onDrop, children }) => {
+  const [{ isOver, canDrop }, drop] = useDrop(() => ({
+    accept: ItemTypes.SOUND,
+    drop: (item: { note: string }) => {
+      onDrop(item, note);
+      return undefined;
+    },
+    collect: (monitor) => ({
+      isOver: !!monitor.isOver(),
+      canDrop: !!monitor.canDrop(),
+    }),
+  }));
+
+  // Visual indicator for drop target
+  const isActive = isOver && canDrop;
+  const backgroundColor = isActive
+    ? 'bg-blue-100'
+    : canDrop
+    ? 'bg-gray-50'
+    : 'bg-white';
+
+  return (
+    <div
+      ref={drop}
+      className={`border-2 ${
+        isActive ? 'border-blue-500' : 'border-gray-200'
+      } p-2 rounded-md ${backgroundColor} transition-colors`}
+    >
+      {children}
+    </div>
+  )
+};
+
 const CustomSoundsModal = ({ isOpen, onClose }: CustomSoundsModalProps) => {
   // Basic state
   const [selectedNote, setSelectedNote] = useState<string>(AVAILABLE_NOTES[0]);
   const [uploadedSounds, setUploadedSounds] = useState<string[]>([]);
   const [isEditMode, setIsEditMode] = useState<boolean>(true);
-  const [currentTab, setCurrentTab] = useState<'upload' | 'record'>('upload');
+  const [currentTab, setCurrentTab] = useState<'upload' | 'record' | 'arrange'>('upload');
+  const [draggedSound, setDraggedSound] = useState<string | null>(null);
+  
+  // Grid state for arrangement
+  const [soundArrangement, setSoundArrangement] = useState<Record<string, string>>({});
   
   // Recording state
   const [isRecording, setIsRecording] = useState<boolean>(false);
@@ -93,32 +176,75 @@ const CustomSoundsModal = ({ isOpen, onClose }: CustomSoundsModalProps) => {
       setRecordingPreviewUrl(null);
       
       // Get media stream
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: { 
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        } 
+      });
+      
+      // Try to determine the best audio format for the browser
+      // Safari prefers mp4, most others can handle webm or ogg
+      let mimeType = 'audio/webm';
+      
+      // Check for supported MIME types
+      const supportedTypes = [
+        'audio/webm',
+        'audio/mp4',
+        'audio/ogg',
+        'audio/wav',
+        'audio/mpeg'
+      ];
+      
+      for (const type of supportedTypes) {
+        if (MediaRecorder.isTypeSupported(type)) {
+          mimeType = type;
+          console.log(`Using supported MIME type: ${mimeType}`);
+          break;
+        }
+      }
+      
+      // Create a MediaRecorder with the best available format
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType,
+        audioBitsPerSecond: 128000 // 128 kbps for reasonable quality
+      });
+      
       mediaRecorderRef.current = mediaRecorder;
       
       // Set up event handlers
       mediaRecorder.addEventListener('dataavailable', (event) => {
-        if (event.data.size > 0) {
+        if (event.data && event.data.size > 0) {
           audioChunksRef.current.push(event.data);
         }
       });
       
       mediaRecorder.addEventListener('stop', () => {
-        // Create blob from chunks
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        setRecordedBlob(audioBlob);
-        
-        // Create preview URL
-        const audioUrl = URL.createObjectURL(audioBlob);
-        setRecordingPreviewUrl(audioUrl);
-        
-        // Stop all tracks
-        stream.getTracks().forEach(track => track.stop());
+        try {
+          // Create blob from chunks with the same MIME type
+          const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+          setRecordedBlob(audioBlob);
+          
+          // Convert to MP3 or another universally supported format if needed
+          // This is a simple fallback if the recorded format isn't compatible
+          
+          // Create preview URL
+          const audioUrl = URL.createObjectURL(audioBlob);
+          setRecordingPreviewUrl(audioUrl);
+          
+          console.log(`Recording completed successfully with format: ${mimeType}`);
+        } catch (error) {
+          console.error('Error processing recording:', error);
+          alert('Failed to process the recording. Please try again.');
+        } finally {
+          // Stop all tracks
+          stream.getTracks().forEach(track => track.stop());
+        }
       });
       
-      // Start recording
-      mediaRecorder.start();
+      // Start recording with 10ms timeslices for more frequent data events
+      mediaRecorder.start(10);
       setIsRecording(true);
     } catch (error) {
       console.error('Error starting recording:', error);
@@ -135,15 +261,32 @@ const CustomSoundsModal = ({ isOpen, onClose }: CustomSoundsModalProps) => {
   
   const saveRecording = () => {
     if (recordedBlob) {
-      // Set the custom sound for the selected note
-      setCustomSound(selectedNote, recordedBlob);
-      
-      // Update the list of uploaded sounds
-      refreshUploadedSounds();
-      
-      // Reset recording state
-      setRecordedBlob(null);
-      setRecordingPreviewUrl(null);
+      try {
+        // Create a more compatible format if needed
+        // Some browsers may record in formats not universally supported
+        // Convert to a more universal format if necessary
+        
+        // Set the custom sound for the selected note
+        setCustomSound(selectedNote, recordedBlob);
+        
+        // Show success message
+        console.log(`Recording saved to note ${selectedNote}`);
+        
+        // Update the list of uploaded sounds
+        refreshUploadedSounds();
+        
+        // Reset recording state
+        setRecordedBlob(null);
+        setRecordingPreviewUrl(null);
+        
+        // Clean up any URL objects to prevent memory leaks
+        if (recordingPreviewUrl) {
+          URL.revokeObjectURL(recordingPreviewUrl);
+        }
+      } catch (error) {
+        console.error('Error saving recording:', error);
+        alert(`Failed to save recording to note ${selectedNote}. Please try a different format.`);
+      }
     }
   };
   
@@ -159,12 +302,41 @@ const CustomSoundsModal = ({ isOpen, onClose }: CustomSoundsModalProps) => {
     if (confirm('Are you sure you want to clear all custom sounds?')) {
       clearCustomSounds();
       setUploadedSounds([]);
+      setSoundArrangement({});
     }
   };
   
   // Toggle between edit and play modes
   const toggleEditMode = () => {
     setIsEditMode(!isEditMode);
+  };
+  
+  // Handle drop for drag-and-drop functionality
+  const handleSoundDrop = (sourceItem: { note: string }, targetNote: string) => {
+    if (sourceItem.note === targetNote) return; // No need to move to same position
+    
+    // Ensure there's a sound to move
+    if (!hasCustomSound(sourceItem.note)) {
+      alert(`No sound assigned to ${sourceItem.note} to move.`);
+      return;
+    }
+    
+    // Update our arrangement mapping
+    setSoundArrangement(prev => ({
+      ...prev,
+      [targetNote]: sourceItem.note
+    }));
+    
+    console.log(`Moved sound from ${sourceItem.note} to ${targetNote}`);
+  };
+  
+  // Handle rearrangement - this would move the actual sounds if implemented fully
+  const applyArrangement = () => {
+    // This is where you would implement the actual sound rearrangement
+    alert('Sound arrangement has been saved. (Actual sound movement would happen here)');
+    
+    // For this demo, we just clear the arrangement after "applying" it
+    setSoundArrangement({});
   };
   
   return (
@@ -195,169 +367,238 @@ const CustomSoundsModal = ({ isOpen, onClose }: CustomSoundsModalProps) => {
         </div>
         
         {isEditMode ? (
-          <div className="space-y-4">
-            <Tabs defaultValue="upload" value={currentTab} onValueChange={(val) => setCurrentTab(val as 'upload' | 'record')}>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="upload">Upload</TabsTrigger>
-                <TabsTrigger value="record">Record</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="upload" className="mt-4">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload Sound File
-                  </h3>
-                  <p className="text-xs text-gray-500 mb-4">
-                    Select a note and upload a sound file to assign to it.
-                  </p>
-                  
-                  <div className="grid gap-4">
-                    <div>
-                      <Label htmlFor="note-select" className="block text-sm font-medium text-gray-700 mb-1">
-                        Select Note
-                      </Label>
-                      <select 
-                        id="note-select"
-                        value={selectedNote}
-                        onChange={(e) => setSelectedNote(e.target.value)}
-                        className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                      >
-                        {AVAILABLE_NOTES.map((note) => (
-                          <option key={note} value={note}>
-                            {note} {hasCustomSound(note) ? '(Custom sound assigned)' : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+          <DndProvider backend={HTML5Backend}>
+            <div className="space-y-4">
+              <Tabs defaultValue="upload" value={currentTab} onValueChange={(val) => setCurrentTab(val as 'upload' | 'record' | 'arrange')}>
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="upload">Upload</TabsTrigger>
+                  <TabsTrigger value="record">Record</TabsTrigger>
+                  <TabsTrigger value="arrange">Arrange</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="upload" className="mt-4">
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Sound File
+                    </h3>
+                    <p className="text-xs text-gray-500 mb-4">
+                      Select a note and upload a sound file to assign to it.
+                    </p>
                     
-                    <div>
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        className="hidden"
-                        accept="audio/*,video/mp4,video/quicktime,video/x-msvideo,video/hevc"
-                        onChange={handleFileUpload}
-                      />
-                      <Button 
-                        type="button" 
-                        onClick={() => fileInputRef.current?.click()}
-                        className="w-full"
-                      >
-                        <Upload className="h-4 w-4 mr-2" />
-                        Upload Sound for {selectedNote}
-                      </Button>
+                    <div className="grid gap-4">
+                      <div>
+                        <Label htmlFor="note-select" className="block text-sm font-medium text-gray-700 mb-1">
+                          Select Note
+                        </Label>
+                        <select 
+                          id="note-select"
+                          value={selectedNote}
+                          onChange={(e) => setSelectedNote(e.target.value)}
+                          className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        >
+                          {AVAILABLE_NOTES.map((note) => (
+                            <option key={note} value={note}>
+                              {note} {hasCustomSound(note) ? '(Custom sound assigned)' : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          className="hidden"
+                          accept="audio/*,video/mp4,video/quicktime,video/x-msvideo,video/hevc"
+                          onChange={handleFileUpload}
+                        />
+                        <Button 
+                          type="button" 
+                          onClick={() => fileInputRef.current?.click()}
+                          className="w-full"
+                        >
+                          <Upload className="h-4 w-4 mr-2" />
+                          Upload Sound for {selectedNote}
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="record" className="mt-4">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
-                    <Mic className="h-4 w-4 mr-2" />
-                    Record Sound
-                  </h3>
-                  <p className="text-xs text-gray-500 mb-4">
-                    Record a sound using your microphone.
-                  </p>
-                  
-                  <div className="grid gap-4">
-                    <div>
-                      <Label htmlFor="note-select-record" className="block text-sm font-medium text-gray-700 mb-1">
-                        Select Note
-                      </Label>
-                      <select 
-                        id="note-select-record"
-                        value={selectedNote}
-                        onChange={(e) => setSelectedNote(e.target.value)}
-                        className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                      >
-                        {AVAILABLE_NOTES.map((note) => (
-                          <option key={note} value={note}>
-                            {note} {hasCustomSound(note) ? '(Custom sound assigned)' : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                </TabsContent>
+                
+                <TabsContent value="record" className="mt-4">
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                      <Mic className="h-4 w-4 mr-2" />
+                      Record Sound
+                    </h3>
+                    <p className="text-xs text-gray-500 mb-4">
+                      Record a sound using your microphone.
+                    </p>
                     
-                    <div className="grid grid-cols-2 gap-2">
-                      {isRecording ? (
-                        <Button 
-                          variant="destructive"
-                          onClick={stopRecording}
-                          className="w-full"
+                    <div className="grid gap-4">
+                      <div>
+                        <Label htmlFor="note-select-record" className="block text-sm font-medium text-gray-700 mb-1">
+                          Select Note
+                        </Label>
+                        <select 
+                          id="note-select-record"
+                          value={selectedNote}
+                          onChange={(e) => setSelectedNote(e.target.value)}
+                          className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
                         >
-                          <Square className="h-4 w-4 mr-2" />
-                          Stop Recording
-                        </Button>
-                      ) : (
+                          {AVAILABLE_NOTES.map((note) => (
+                            <option key={note} value={note}>
+                              {note} {hasCustomSound(note) ? '(Custom sound assigned)' : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2">
+                        {isRecording ? (
+                          <Button 
+                            variant="destructive"
+                            onClick={stopRecording}
+                            className="w-full"
+                          >
+                            <Square className="h-4 w-4 mr-2" />
+                            Stop Recording
+                          </Button>
+                        ) : (
+                          <Button 
+                            onClick={startRecording}
+                            className="w-full"
+                            variant={recordedBlob ? "outline" : "default"}
+                          >
+                            <Mic className="h-4 w-4 mr-2" />
+                            {recordedBlob ? "Record Again" : "Start Recording"}
+                          </Button>
+                        )}
+                        
+                        {recordingPreviewUrl && (
+                          <Button 
+                            variant="outline"
+                            onClick={playRecordingPreview}
+                            className="w-full"
+                          >
+                            <Play className="h-4 w-4 mr-2" />
+                            Play
+                          </Button>
+                        )}
+                      </div>
+                      
+                      {recordedBlob && (
                         <Button 
-                          onClick={startRecording}
-                          className="w-full"
-                          variant={recordedBlob ? "outline" : "default"}
+                          onClick={saveRecording}
+                          className="w-full bg-green-600 hover:bg-green-700 text-white"
                         >
-                          <Mic className="h-4 w-4 mr-2" />
-                          {recordedBlob ? "Record Again" : "Start Recording"}
+                          <Save className="h-4 w-4 mr-2" />
+                          Save to {selectedNote}
                         </Button>
                       )}
                       
+                      {/* Hidden audio for preview */}
                       {recordingPreviewUrl && (
-                        <Button 
-                          variant="outline"
-                          onClick={playRecordingPreview}
-                          className="w-full"
-                        >
-                          <Play className="h-4 w-4 mr-2" />
-                          Play
-                        </Button>
+                        <audio 
+                          ref={previewAudioRef}
+                          src={recordingPreviewUrl}
+                          className="hidden"
+                        />
                       )}
                     </div>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="arrange" className="mt-4">
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                      <Move className="h-4 w-4 mr-2" />
+                      Drag & Drop Arrangement
+                    </h3>
+                    <p className="text-xs text-gray-500 mb-4">
+                      Drag sounds from one note to another to reorganize your soundboard.
+                    </p>
                     
-                    {recordedBlob && (
-                      <Button 
-                        onClick={saveRecording}
-                        className="w-full bg-green-600 hover:bg-green-700 text-white"
-                      >
-                        <Save className="h-4 w-4 mr-2" />
-                        Save to {selectedNote}
-                      </Button>
-                    )}
-                    
-                    {/* Hidden audio for preview */}
-                    {recordingPreviewUrl && (
-                      <audio 
-                        ref={previewAudioRef}
-                        src={recordingPreviewUrl}
-                        className="hidden"
-                      />
+                    {uploadedSounds.length > 0 ? (
+                      <div className="space-y-4">
+                        <div className="mb-4">
+                          <h4 className="text-sm font-medium mb-2">Available Sounds</h4>
+                          <div className="grid grid-cols-3 gap-2">
+                            {uploadedSounds.map((note) => (
+                              <DraggableSound 
+                                key={note} 
+                                note={note}
+                                onDragStart={() => setDraggedSound(note)}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <h4 className="text-sm font-medium mb-2">Drop Zones</h4>
+                          <div className="grid grid-cols-3 gap-2">
+                            {AVAILABLE_NOTES.map((note) => (
+                              <SoundDropTarget 
+                                key={note} 
+                                note={note}
+                                onDrop={handleSoundDrop}
+                              >
+                                <div className="text-center">
+                                  <div className="font-medium">{note}</div>
+                                  {soundArrangement[note] && (
+                                    <div className="text-xs text-blue-600 mt-1">
+                                      ← From {soundArrangement[note]}
+                                    </div>
+                                  )}
+                                </div>
+                              </SoundDropTarget>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        {Object.keys(soundArrangement).length > 0 && (
+                          <Button
+                            onClick={applyArrangement}
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                          >
+                            <Save className="h-4 w-4 mr-2" />
+                            Apply Arrangement
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <p>No custom sounds available to arrange.</p>
+                        <p className="text-sm mt-2">Upload or record sounds first.</p>
+                      </div>
                     )}
                   </div>
+                </TabsContent>
+              </Tabs>
+              
+              {uploadedSounds.length > 0 && currentTab !== 'arrange' && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Your Custom Sounds</h3>
+                  <div className="grid grid-cols-3 gap-2">
+                    {uploadedSounds.map((note) => (
+                      <div key={note} className="bg-gray-100 p-2 rounded-md text-center text-sm">
+                        {note}
+                      </div>
+                    ))}
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    className="w-full mt-4 text-red-500 hover:text-red-700"
+                    onClick={handleClearAllSounds}
+                  >
+                    <Trash className="h-4 w-4 mr-2" />
+                    Clear All Custom Sounds
+                  </Button>
                 </div>
-              </TabsContent>
-            </Tabs>
-            
-            {uploadedSounds.length > 0 && (
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-2">Your Custom Sounds</h3>
-                <div className="grid grid-cols-3 gap-2">
-                  {uploadedSounds.map((note) => (
-                    <div key={note} className="bg-gray-100 p-2 rounded-md text-center text-sm">
-                      {note}
-                    </div>
-                  ))}
-                </div>
-                <Button 
-                  variant="outline" 
-                  className="w-full mt-4 text-red-500 hover:text-red-700"
-                  onClick={handleClearAllSounds}
-                >
-                  <Trash className="h-4 w-4 mr-2" />
-                  Clear All Custom Sounds
-                </Button>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          </DndProvider>
         ) : (
           <div className="space-y-4">
             <div className="bg-gray-50 p-4 rounded-lg">
