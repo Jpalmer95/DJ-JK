@@ -108,7 +108,7 @@ export default function Share() {
           {/* Donation Link */}
           <div className="mt-2 text-center">
             <a 
-              href={`https://commerce.coinbase.com/checkout/0xe0B8939Cf214DF3d6660C502CFcE3A86055631B8`} 
+              href="https://commerce.coinbase.com/checkout/0xe0B8939Cf214DF3d6660C502CFcE3A86055631B8"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center text-sm font-medium text-amber-600 hover:text-amber-800 transition-colors"

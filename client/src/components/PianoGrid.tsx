@@ -61,10 +61,10 @@ const PianoGrid = forwardRef<any, PianoGridProps>(({
   const isMobile = useIsMobile();
   const [activeKey, setActiveKey] = useState<number | null>(null);
   
-  // Get effective theme color - either selected or based on sound mode
+  // Get effective theme color - use explicitly set theme color from settings
   const effectiveThemeColor = useMemo(() => {
-    const soundModeColor = SOUND_MODE_COLORS[soundMode];
-    return soundModeColor || themeColor;
+    // Only use sound mode color as a fallback
+    return themeColor || SOUND_MODE_COLORS[soundMode];
   }, [themeColor, soundMode]);
   
   // Determine base grid dimensions based on screen size

@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from "react";
-import { HelpCircle, Settings, RefreshCw, MicIcon, StopCircle, Play, Share2, Music } from "lucide-react";
+import { HelpCircle, Settings, RefreshCw, MicIcon, StopCircle, Play, Share2, Music, FileAudio } from "lucide-react";
 import PianoGrid from "@/components/PianoGrid";
 import HelpModal from "@/components/modals/HelpModal";
 import SettingsModal from "@/components/modals/SettingsModal";
 import ShareModal from "@/components/modals/ShareModal";
+import BaseTrackUploader from "@/components/BaseTrackUploader";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -37,6 +38,7 @@ export default function Home() {
   
   // Audio Settings
   const [volume, setVolume] = useState(0.8);
+  const [baseTrackVolume, setBaseTrackVolume] = useState(0.5);
   const [animationsEnabled, setAnimationsEnabled] = useState(true);
   const [themeColor, setThemeColor] = useState<string>("blue");
   
@@ -214,7 +216,7 @@ export default function Home() {
           {/* Donation Link */}
           <div className="mt-2 text-center">
             <a 
-              href={`https://commerce.coinbase.com/checkout/0xe0B8939Cf214DF3d6660C502CFcE3A86055631B8`} 
+              href="https://commerce.coinbase.com/checkout/0xe0B8939Cf214DF3d6660C502CFcE3A86055631B8"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center text-sm font-medium text-amber-600 hover:text-amber-800 transition-colors"
