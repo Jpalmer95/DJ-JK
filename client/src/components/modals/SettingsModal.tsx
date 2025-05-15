@@ -70,19 +70,19 @@ const SettingsModal = ({
               />
               <button
                 type="button"
-                className={`w-10 h-10 bg-purple-500 rounded-full ${themeColor === 'purple' ? 'ring-2 ring-offset-2 ring-blue-500' : ''}`}
+                className={`w-10 h-10 bg-purple-500 rounded-full ${themeColor === 'purple' ? 'ring-2 ring-offset-2 ring-purple-500' : ''}`}
                 onClick={() => setThemeColor('purple')}
                 aria-label="Purple theme"
               />
               <button
                 type="button"
-                className={`w-10 h-10 bg-pink-500 rounded-full ${themeColor === 'pink' ? 'ring-2 ring-offset-2 ring-blue-500' : ''}`}
+                className={`w-10 h-10 bg-pink-500 rounded-full ${themeColor === 'pink' ? 'ring-2 ring-offset-2 ring-pink-500' : ''}`}
                 onClick={() => setThemeColor('pink')}
                 aria-label="Pink theme"
               />
               <button
                 type="button"
-                className={`w-10 h-10 bg-green-500 rounded-full ${themeColor === 'green' ? 'ring-2 ring-offset-2 ring-blue-500' : ''}`}
+                className={`w-10 h-10 bg-green-500 rounded-full ${themeColor === 'green' ? 'ring-2 ring-offset-2 ring-green-500' : ''}`}
                 onClick={() => setThemeColor('green')}
                 aria-label="Green theme"
               />

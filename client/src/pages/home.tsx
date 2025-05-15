@@ -237,10 +237,11 @@ export default function Home() {
         <div className="max-w-4xl mx-auto">
           {/* Instrument Selector Tabs */}
           <Tabs defaultValue="soundMode" className="mb-6">
-            <TabsList className="grid grid-cols-3 w-full max-w-md mx-auto">
+            <TabsList className="grid grid-cols-4 w-full max-w-md mx-auto">
               <TabsTrigger value="soundMode">Sound Mode</TabsTrigger>
               <TabsTrigger value="beatControl">Beat Control</TabsTrigger>
               <TabsTrigger value="gridSize">Grid Size</TabsTrigger>
+              <TabsTrigger value="baseTrack">Base Track</TabsTrigger>
             </TabsList>
             
             <TabsContent value="soundMode" className="mt-4">
@@ -357,6 +358,10 @@ export default function Home() {
                   </div>
                 </div>
               </div>
+            </TabsContent>
+            
+            <TabsContent value="baseTrack" className="mt-4">
+              <BaseTrackUploader onVolumeChange={setBaseTrackVolume} />
             </TabsContent>
           </Tabs>
 
