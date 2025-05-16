@@ -2,7 +2,14 @@ import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X, Trash, Music, Upload, Mic, Square, Play, Edit2, Save, Move } from "lucide-react";
-import { hasCustomSound, setCustomSound, clearCustomSounds, getSoundLibrary, LibrarySound } from "@/lib/audio";
+import { 
+  hasCustomSound, 
+  setCustomSound, 
+  clearCustomSounds, 
+  getSoundLibrary, 
+  LibrarySound,
+  moveCustomSound
+} from "@/lib/audio";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -352,12 +359,40 @@ const CustomSoundsModal = ({ isOpen, onClose }: CustomSoundsModalProps) => {
     console.log(`Moved sound from ${sourceItem.note} to ${targetNote}`);
   };
   
-  // Handle rearrangement - this would move the actual sounds if implemented fully
+  // Handle rearrangement by moving the sounds between notes
   const applyArrangement = () => {
-    // This is where you would implement the actual sound rearrangement
-    alert('Sound arrangement has been saved. (Actual sound movement would happen here)');
+    // Get all the arrangements to apply
+    const arrangements = Object.entries(soundArrangement);
+    if (arrangements.length === 0) return;
     
-    // For this demo, we just clear the arrangement after "applying" it
+    let successCount = 0;
+    let failCount = 0;
+    
+    // Apply each arrangement in the order they were added
+    arrangements.forEach(([targetNote, sourceNote]) => {
+      try {
+        // Use the imported moveCustomSound function directly
+        const success = moveCustomSound(sourceNote, targetNote);
+        if (success) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      } catch (error) {
+        console.error(`Error applying arrangement from ${sourceNote} to ${targetNote}:`, error);
+        failCount++;
+      }
+    });
+    
+    // Show results to the user
+    if (failCount === 0) {
+      alert(`Success! All ${successCount} sound arrangements have been applied.`);
+    } else {
+      alert(`Applied ${successCount} sound arrangements with ${failCount} errors.`);
+    }
+    
+    // Update display and clean up
+    refreshUploadedSounds();
     setSoundArrangement({});
   };
   

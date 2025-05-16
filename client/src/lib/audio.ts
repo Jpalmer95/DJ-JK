@@ -522,3 +522,48 @@ export function clearCustomSounds(): void {
     delete customSounds[note];
   });
 }
+
+// Move a custom sound from one note to another
+export function moveCustomSound(sourceNote: string, targetNote: string): boolean {
+  try {
+    // Check if source has a custom sound
+    if (!hasCustomSound(sourceNote)) {
+      console.error(`Source note ${sourceNote} has no custom sound to move`);
+      return false;
+    }
+    
+    // First, we need to find the source sound in our library
+    const sourceName = `Sound for ${sourceNote}`;
+    const soundEntry = soundLibrary.find(s => s.name === sourceName);
+    
+    if (!soundEntry || !soundEntry.blob) {
+      console.error(`Couldn't find sound entry for ${sourceNote} in library`);
+      return false;
+    }
+    
+    // Copy the sound to the target note
+    setCustomSound(targetNote, soundEntry.blob);
+    
+    console.log(`Successfully moved sound from ${sourceNote} to ${targetNote}`);
+    return true;
+  } catch (error) {
+    console.error(`Error moving sound from ${sourceNote} to ${targetNote}:`, error);
+    return false;
+  }
+}
+
+// Add some functions to the window object for global access
+declare global {
+  interface Window {
+    moveCustomSound: typeof moveCustomSound;
+    hasCustomSound: typeof hasCustomSound;
+    setCustomSound: typeof setCustomSound;
+    clearCustomSounds: typeof clearCustomSounds;
+  }
+}
+
+// Make functions available globally for use in components
+window.moveCustomSound = moveCustomSound;
+window.hasCustomSound = hasCustomSound;
+window.setCustomSound = setCustomSound;
+window.clearCustomSounds = clearCustomSounds;
