@@ -201,59 +201,110 @@ const CustomSoundsModal = ({ isOpen, onClose }: CustomSoundsModalProps) => {
         } 
       });
       
-      // Try to determine the best audio format for the browser
-      // Safari prefers mp4, most others can handle webm or ogg
-      let mimeType = 'audio/webm';
-      
-      // Check for supported MIME types
+      // Priority list for audio formats - we prioritize formats with better browser support
       const supportedTypes = [
-        'audio/webm',
-        'audio/mp4',
-        'audio/ogg',
-        'audio/wav',
-        'audio/mpeg'
+        // Common format supported by most browsers
+        'audio/webm;codecs=opus',  // Modern standard, well supported
+        'audio/webm',              // Generic WebM
+        
+        // iOS/Safari friendly formats
+        'audio/mp4',               // iOS/Safari 
+        'audio/mp4;codecs=mp4a',   // Explicit codec for Safari
+        
+        // Fallback options
+        'audio/mpeg',              // MP3 format
+        'audio/ogg;codecs=opus',   // OGG format
+        'audio/wav',               // WAV format (large files)
       ];
       
+      // Find the first supported format
+      let mimeType = '';
       for (const type of supportedTypes) {
-        if (MediaRecorder.isTypeSupported(type)) {
-          mimeType = type;
-          console.log(`Using supported MIME type: ${mimeType}`);
-          break;
+        try {
+          if (MediaRecorder.isTypeSupported(type)) {
+            mimeType = type;
+            console.log(`Using supported MIME type: ${mimeType}`);
+            break;
+          }
+        } catch (err) {
+          console.warn(`Error checking support for ${type}:`, err);
         }
       }
       
-      // Create a MediaRecorder with the best available format
-      const mediaRecorder = new MediaRecorder(stream, {
+      // If no supported format found, use default format
+      if (!mimeType) {
+        mimeType = 'audio/webm'; // Default fallback
+        console.warn('No explicitly supported format found, using fallback: audio/webm');
+      }
+      
+      // Create MediaRecorder options
+      const options: MediaRecorderOptions = {
         mimeType,
         audioBitsPerSecond: 128000 // 128 kbps for reasonable quality
-      });
+      };
       
-      mediaRecorderRef.current = mediaRecorder;
+      // Create a MediaRecorder with the best available format
+      try {
+        const mediaRecorder = new MediaRecorder(stream, options);
+        mediaRecorderRef.current = mediaRecorder;
+      } catch (error) {
+        console.error("Error creating MediaRecorder:", error);
+        // Fallback to basic options if needed
+        const mediaRecorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = mediaRecorder;
+      }
+      
+      if (!mediaRecorderRef.current) {
+        throw new Error("Failed to create MediaRecorder");
+      }
       
       // Set up event handlers
-      mediaRecorder.addEventListener('dataavailable', (event) => {
+      mediaRecorderRef.current.addEventListener('dataavailable', (event: BlobEvent) => {
         if (event.data && event.data.size > 0) {
           audioChunksRef.current.push(event.data);
         }
       });
       
-      mediaRecorder.addEventListener('stop', () => {
+      mediaRecorderRef.current.addEventListener('stop', () => {
         try {
+          // Safety check for empty audio chunks
+          if (audioChunksRef.current.length === 0) {
+            throw new Error("No audio data recorded");
+          }
+          
           // Create blob from chunks with the same MIME type
-          const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+          // Ensure we have a valid MIME type, fall back to 'audio/webm' if not
+          const blobType = mimeType || 'audio/webm';
+          
+          // Create a blob with a known size to verify it's not corrupt
+          const audioBlob = new Blob(audioChunksRef.current, { type: blobType });
+          
+          if (audioBlob.size < 100) {
+            // Too small, likely corrupt
+            throw new Error("Recorded audio is too small or corrupt");
+          }
+          
           setRecordedBlob(audioBlob);
           
-          // Convert to MP3 or another universally supported format if needed
-          // This is a simple fallback if the recorded format isn't compatible
-          
-          // Create preview URL
+          // Create preview URL and test it
           const audioUrl = URL.createObjectURL(audioBlob);
           setRecordingPreviewUrl(audioUrl);
           
-          console.log(`Recording completed successfully with format: ${mimeType}`);
+          // Create a test audio element to verify the blob works
+          const testAudio = new Audio(audioUrl);
+          testAudio.oncanplaythrough = () => {
+            console.log(`Recording verified and ready to use with format: ${blobType}`);
+          };
+          
+          testAudio.onerror = () => {
+            console.warn(`Recording format ${blobType} may not be fully supported`);
+            // We still keep the recording as it might work with Howler.js
+          };
+          
+          console.log(`Recording completed successfully with format: ${blobType}`);
         } catch (error) {
           console.error('Error processing recording:', error);
-          alert('Failed to process the recording. Please try again.');
+          alert('Failed to process the recording. Please try again with a shorter recording.');
         } finally {
           // Stop all tracks
           stream.getTracks().forEach(track => track.stop());
@@ -261,7 +312,7 @@ const CustomSoundsModal = ({ isOpen, onClose }: CustomSoundsModalProps) => {
       });
       
       // Start recording with 10ms timeslices for more frequent data events
-      mediaRecorder.start(10);
+      mediaRecorderRef.current.start(10);
       setIsRecording(true);
     } catch (error) {
       console.error('Error starting recording:', error);
@@ -279,9 +330,19 @@ const CustomSoundsModal = ({ isOpen, onClose }: CustomSoundsModalProps) => {
   const saveRecording = () => {
     if (recordedBlob) {
       try {
-        // Create a more compatible format if needed
-        // Some browsers may record in formats not universally supported
-        // Convert to a more universal format if necessary
+        if (recordedBlob.size < 100) {
+          throw new Error("Recording is too small or corrupt");
+        }
+        
+        // Check if we already have too many custom sounds
+        const existingSounds = AVAILABLE_NOTES.filter(note => hasCustomSound(note));
+        if (existingSounds.length > 15) {
+          // Show a warning if we have many sounds already
+          const confirmSave = confirm(
+            "You already have many custom sounds which may affect performance. Continue adding more?"
+          );
+          if (!confirmSave) return;
+        }
         
         // Set the custom sound for the selected note
         setCustomSound(selectedNote, recordedBlob);
@@ -302,8 +363,10 @@ const CustomSoundsModal = ({ isOpen, onClose }: CustomSoundsModalProps) => {
         }
       } catch (error) {
         console.error('Error saving recording:', error);
-        alert(`Failed to save recording to note ${selectedNote}. Please try a different format.`);
+        alert(`Failed to save recording to note ${selectedNote}. Please try recording again with a different microphone or for a shorter duration.`);
       }
+    } else {
+      alert("No recording to save. Please record a sound first.");
     }
   };
   
