@@ -347,12 +347,10 @@ export function playNote(note: string, volume: number = 0.8, soundMode: SoundMod
     
     // Apply reverb simulation if specified in the genre
     if (genreEffects.reverb > 0) {
-      // Simple reverb simulation using delay nodes
-      const reverbGain = audioContext.createGain();
-      reverbGain.gain.value = genreEffects.reverb * 0.2; // Max 20% wet signal
-      
-      // Ensure audioContext is available
+      // Simple reverb simulation using delay nodes - only if audioContext exists
       if (audioContext) {
+        const reverbGain = audioContext.createGain();
+        reverbGain.gain.value = genreEffects.reverb * 0.2; // Max 20% wet signal
         // Create multiple delays for a simple reverb effect
         const delays = [0.03, 0.05, 0.07, 0.11].map(time => {
           const delay = audioContext.createDelay();
