@@ -236,8 +236,7 @@ export class DatabaseStorage implements IStorage {
       await db
         .update(recordings)
         .set({
-          data,
-          updatedAt: new Date()
+          data
         })
         .where(eq(recordings.shareCode, shareCode));
         
@@ -316,11 +315,15 @@ export class DatabaseStorage implements IStorage {
       .where(eq(soundSamples.libraryId, id));
       
     // Then delete the library
-    const result = await db
-      .delete(soundLibraries)
-      .where(eq(soundLibraries.id, id));
-      
-    return result.count > 0;
+    try {
+      await db
+        .delete(soundLibraries)
+        .where(eq(soundLibraries.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting sound library:", error);
+      return false;
+    }
   }
   
   // Sound sample methods
@@ -370,11 +373,15 @@ export class DatabaseStorage implements IStorage {
       .where(eq(noteMappings.sampleId, id));
       
     // Then delete the sample
-    const result = await db
-      .delete(soundSamples)
-      .where(eq(soundSamples.id, id));
-      
-    return result.count > 0;
+    try {
+      await db
+        .delete(soundSamples)
+        .where(eq(soundSamples.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting sound sample:", error);
+      return false;
+    }
   }
   
   // Note mapping methods
@@ -442,11 +449,15 @@ export class DatabaseStorage implements IStorage {
   }
   
   async deleteNoteMapping(id: number): Promise<boolean> {
-    const result = await db
-      .delete(noteMappings)
-      .where(eq(noteMappings.id, id));
-      
-    return result.count > 0;
+    try {
+      await db
+        .delete(noteMappings)
+        .where(eq(noteMappings.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting note mapping:", error);
+      return false;
+    }
   }
   
   // Recording methods
@@ -509,11 +520,15 @@ export class DatabaseStorage implements IStorage {
   }
   
   async deleteRecording(id: number): Promise<boolean> {
-    const result = await db
-      .delete(recordings)
-      .where(eq(recordings.id, id));
-      
-    return result.count > 0;
+    try {
+      await db
+        .delete(recordings)
+        .where(eq(recordings.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting recording:", error);
+      return false;
+    }
   }
 }
 
