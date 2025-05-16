@@ -12,150 +12,6 @@ const NOTE_FREQUENCIES: Record<string, number> = {
 // Sound mode types
 export type SoundMode = 'piano' | 'synth' | 'chiptune' | 'funk' | 'custom';
 
-// Genre-based sound pack types
-export type GenreSoundPack = 'none' | 'jazz' | 'classical' | 'electronic' | 'rock' | 'hiphop' | 'ambient';
-
-// Current selected genre pack
-let currentGenrePack: GenreSoundPack = 'none';
-
-// Genre sound pack configurations
-interface GenreSoundPackConfig {
-  name: string;
-  description: string;
-  soundMode: SoundMode;
-  defaultBeatPattern: BeatPattern;
-  colorTheme: string;
-  effects: {
-    reverb: number;     // 0-1 scale
-    delay: number;      // 0-1 scale
-    distortion: number; // 0-1 scale
-    filter: {
-      type: BiquadFilterType;
-      frequency: number;
-      Q: number;
-    } | null;
-  };
-}
-
-// Sound pack configurations for each genre
-export const GENRE_PACKS: Record<GenreSoundPack, GenreSoundPackConfig> = {
-  'none': {
-    name: 'None',
-    description: 'No genre effects applied',
-    soundMode: 'piano',
-    defaultBeatPattern: 'none',
-    colorTheme: 'blue',
-    effects: {
-      reverb: 0,
-      delay: 0,
-      distortion: 0,
-      filter: null
-    }
-  },
-  'jazz': {
-    name: 'Jazz',
-    description: 'Smooth jazz sounds with warm tones',
-    soundMode: 'piano',
-    defaultBeatPattern: 'groove',
-    colorTheme: 'blue',
-    effects: {
-      reverb: 0.3,
-      delay: 0.1,
-      distortion: 0,
-      filter: {
-        type: 'lowpass',
-        frequency: 2000,
-        Q: 1
-      }
-    }
-  },
-  'classical': {
-    name: 'Classical',
-    description: 'Rich orchestral sounds with natural reverb',
-    soundMode: 'piano',
-    defaultBeatPattern: 'none',
-    colorTheme: 'purple',
-    effects: {
-      reverb: 0.5,
-      delay: 0,
-      distortion: 0,
-      filter: {
-        type: 'highshelf',
-        frequency: 3000,
-        Q: 0.5
-      }
-    }
-  },
-  'electronic': {
-    name: 'Electronic',
-    description: 'Digital synth sounds with modern effects',
-    soundMode: 'synth',
-    defaultBeatPattern: 'electro',
-    colorTheme: 'pink',
-    effects: {
-      reverb: 0.2,
-      delay: 0.3,
-      distortion: 0.2,
-      filter: {
-        type: 'bandpass',
-        frequency: 1500,
-        Q: 5
-      }
-    }
-  },
-  'rock': {
-    name: 'Rock',
-    description: 'Distorted guitar-like tones with punch',
-    soundMode: 'funk',
-    defaultBeatPattern: 'basic',
-    colorTheme: 'green',
-    effects: {
-      reverb: 0.1,
-      delay: 0.1,
-      distortion: 0.5,
-      filter: {
-        type: 'peaking',
-        frequency: 500,
-        Q: 2
-      }
-    }
-  },
-  'hiphop': {
-    name: 'Hip Hop',
-    description: 'Deep bass sounds with rhythmic beats',
-    soundMode: 'funk',
-    defaultBeatPattern: 'groove',
-    colorTheme: 'blue',
-    effects: {
-      reverb: 0.2,
-      delay: 0.2,
-      distortion: 0.1,
-      filter: {
-        type: 'lowpass',
-        frequency: 1000,
-        Q: 1
-      }
-    }
-  },
-  'ambient': {
-    name: 'Ambient',
-    description: 'Atmospheric sounds with lots of space',
-    soundMode: 'synth',
-    defaultBeatPattern: 'none',
-    colorTheme: 'purple',
-    effects: {
-      reverb: 0.8,
-      delay: 0.4,
-      distortion: 0,
-      filter: {
-        type: 'lowpass',
-        frequency: 2500,
-        Q: 0.5
-      }
-    }
-  },
-};
-
 // Beat patterns - time in ms between kick and snare
 export const BEATS = {
   'none': [],
@@ -176,7 +32,6 @@ export interface RecordedSequence {
   notes: { noteIndex: number; time: number }[];
   soundMode: SoundMode;
   beatPattern: BeatPattern;
-  genrePack?: GenreSoundPack; // Added genre pack support
 }
 
 // Initialize audio context (must be done on user interaction)
@@ -193,7 +48,7 @@ export function initAudioContext() {
   return audioContext;
 }
 
-// Play a note using WebAudio API with different instrument sounds and genre effects
+// Play a note using WebAudio API with different instrument sounds
 export function playNote(note: string, volume: number = 0.8, soundMode: SoundMode = 'piano') {
   // Check if we're in custom sound mode and have a custom sound for this note
   if (soundMode === 'custom' && hasCustomSound(note)) {
@@ -213,25 +68,12 @@ export function playNote(note: string, volume: number = 0.8, soundMode: SoundMod
   const oscillator = audioContext.createOscillator();
   const gainNode = audioContext.createGain();
   
-  // Get genre effects if a genre pack is selected
-  const genreEffects = currentGenrePack !== 'none' 
-    ? GENRE_PACKS[currentGenrePack].effects 
-    : null;
-  
-  // Apply sound mode first (before genre effects)
-  // If a genre pack is active, override the soundMode with the pack's soundMode
-  const effectiveSoundMode = (currentGenrePack !== 'none' && genreEffects) 
-    ? GENRE_PACKS[currentGenrePack].soundMode 
-    : soundMode;
-  
-  // Additional effect nodes
+  // Additional effects for synth mode
   let filterNode: BiquadFilterNode | null = null;
   let distortionNode: WaveShaperNode | null = null;
-  let delayNode: DelayNode | null = null;
-  let reverbNode: AudioNode | null = null; // Changed to more generic type
   
   // Configure oscillator based on the selected sound mode
-  switch (effectiveSoundMode) {
+  switch (soundMode) {
     case 'piano':
       oscillator.type = 'sine';
       // Apply envelope for a piano-like sound
@@ -314,123 +156,17 @@ export function playNote(note: string, volume: number = 0.8, soundMode: SoundMod
   // Set the oscillator frequency
   oscillator.frequency.value = frequency;
   
-  // Apply genre effects if a genre pack is active
-  if (genreEffects) {
-    // Apply distortion effect if specified in the genre
-    if (genreEffects.distortion > 0) {
-      distortionNode = audioContext.createWaveShaper();
-      distortionNode.curve = createDistortionCurve(genreEffects.distortion * 400);
-      distortionNode.oversample = '4x';
-    }
-    
-    // Apply filter effect if specified in the genre
-    if (genreEffects.filter) {
-      filterNode = audioContext.createBiquadFilter();
-      filterNode.type = genreEffects.filter.type;
-      filterNode.frequency.value = genreEffects.filter.frequency;
-      filterNode.Q.value = genreEffects.filter.Q;
-    }
-    
-    // Apply delay effect if specified in the genre
-    if (genreEffects.delay > 0) {
-      delayNode = audioContext.createDelay();
-      delayNode.delayTime.value = genreEffects.delay * 0.5; // Max 0.5 second delay
-      
-      // Create a feedback gain for the delay
-      const feedbackGain = audioContext.createGain();
-      feedbackGain.gain.value = genreEffects.delay * 0.4; // Max 40% feedback
-      
-      // Connect delay feedback loop
-      delayNode.connect(feedbackGain);
-      feedbackGain.connect(delayNode);
-    }
-    
-    // Apply reverb simulation if specified in the genre
-    if (genreEffects.reverb > 0) {
-      // Simple reverb simulation using delay nodes - only if audioContext exists
-      if (audioContext) {
-        const reverbGain = audioContext.createGain();
-        reverbGain.gain.value = genreEffects.reverb * 0.2; // Max 20% wet signal
-        // Create multiple delays for a simple reverb effect
-        const delays = [0.03, 0.05, 0.07, 0.11].map(time => {
-          const delay = audioContext.createDelay();
-          delay.delayTime.value = time;
-          const gain = audioContext.createGain();
-          gain.gain.value = 0.2 - (time * 0.5); // Attenuate longer delays
-          delay.connect(gain);
-          return { delay, gain };
-        });
-        
-        // Connect all reverb components
-        delays.forEach(({ delay, gain }) => {
-          gain.connect(reverbGain);
-        });
-        
-        // Store the first delay for the connection chain
-        const firstDelay = delays[0].delay;
-        reverbNode = firstDelay;
-      }
-    }
-  }
-  
-  // Build connection chain - from source to destination
-  // First connect the oscillator to either the filter, distortion, or directly to the gain
-  let lastNode: AudioNode = oscillator;
-  
-  // Start with basic instrument effects
-  if (effectiveSoundMode === 'synth' && filterNode) {
+  // Connect nodes based on instrument type
+  if (soundMode === 'synth' && filterNode) {
     oscillator.connect(filterNode);
-    lastNode = filterNode;
-  } else if (effectiveSoundMode === 'funk' && distortionNode) {
+    filterNode.connect(gainNode);
+  } else if (soundMode === 'funk' && distortionNode) {
     oscillator.connect(distortionNode);
-    lastNode = distortionNode;
+    distortionNode.connect(gainNode);
+  } else {
+    oscillator.connect(gainNode);
   }
   
-  // Then apply genre-specific effects in sequence
-  if (genreEffects) {
-    // Apply filter if we haven't already
-    if (genreEffects.filter && filterNode && lastNode !== filterNode) {
-      lastNode.connect(filterNode);
-      lastNode = filterNode;
-    }
-    
-    // Apply distortion if we haven't already
-    if (genreEffects.distortion > 0 && distortionNode && lastNode !== distortionNode) {
-      lastNode.connect(distortionNode);
-      lastNode = distortionNode;
-    }
-    
-    // Apply delay
-    if (genreEffects.delay > 0 && delayNode) {
-      // Connect the delay in parallel, not in series
-      lastNode.connect(delayNode);
-      // Don't update lastNode here as delay is a parallel effect
-    }
-    
-    // Apply reverb simulation
-    if (genreEffects.reverb > 0 && reverbNode) {
-      // Connect reverb in parallel for a cleaner sound
-      lastNode.connect(reverbNode);
-      // Don't update lastNode here as reverb is a parallel effect
-    }
-  }
-  
-  // Finally connect to the gain node and then to the destination
-  lastNode.connect(gainNode);
-  
-  // Connect any parallel effects (delay, reverb) to the gain node
-  if (delayNode) {
-    delayNode.connect(gainNode);
-  }
-  
-  if (reverbNode) {
-    // For our simple reverb, we need to connect each delay's gain to the output
-    const reverbGain = audioContext.createGain();
-    reverbGain.gain.value = genreEffects?.reverb || 0;
-    reverbGain.connect(gainNode);
-  }
-  
-  // Final connection to the output
   gainNode.connect(audioContext.destination);
   
   // Start and stop oscillator
@@ -600,33 +336,6 @@ export function stopBeat() {
 // Get current beat pattern
 export function getCurrentBeatPattern(): BeatPattern {
   return currentBeatPattern;
-}
-
-// Get current genre pack
-export function getCurrentGenrePack(): GenreSoundPack {
-  return currentGenrePack;
-}
-
-// Set a genre sound pack and apply its settings
-export function setGenrePack(genre: GenreSoundPack, applyDefaults: boolean = true): void {
-  // Update the current genre
-  currentGenrePack = genre;
-  
-  // Only apply defaults if requested
-  if (applyDefaults && genre !== 'none') {
-    const config = GENRE_PACKS[genre];
-    
-    // Apply the default beat pattern for this genre
-    if (config.defaultBeatPattern !== 'none') {
-      startBeat(config.defaultBeatPattern);
-      currentBeatPattern = config.defaultBeatPattern;
-    } else {
-      stopBeat();
-      currentBeatPattern = 'none';
-    }
-    
-    console.log(`Applied genre pack: ${config.name}`);
-  }
 }
 
 // Encode a recording to share
