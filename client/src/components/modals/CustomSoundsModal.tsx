@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { X, Trash, Music, Upload, Mic, Square, Play, Edit2, Save, Move } from "lucide-react";
+import { X, Trash, Music, Upload, Mic, Square, Play, Edit2, Save, Move, BarChart2 } from "lucide-react";
+import AudioPreview from "@/components/AudioPreview";
 import { 
   hasCustomSound, 
   setCustomSound, 
@@ -610,6 +611,21 @@ const CustomSoundsModal = ({ isOpen, onClose }: CustomSoundsModalProps) => {
                           </Button>
                         )}
                       </div>
+                      
+                      {/* Waveform Visualizer for recorded audio */}
+                      {recordingPreviewUrl && (
+                        <div className="mt-2">
+                          <div className="text-xs font-medium text-gray-700 mb-1 flex items-center">
+                            <Waveform className="h-3 w-3 mr-1" />
+                            Sound Preview
+                          </div>
+                          <AudioPreview 
+                            audioUrl={recordingPreviewUrl}
+                            color="#10b981" 
+                            compact={true}
+                          />
+                        </div>
+                      )}
                       
                       {recordedBlob && (
                         <Button 
