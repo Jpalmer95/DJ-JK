@@ -12,6 +12,150 @@ const NOTE_FREQUENCIES: Record<string, number> = {
 // Sound mode types
 export type SoundMode = 'piano' | 'synth' | 'chiptune' | 'funk' | 'custom';
 
+// Genre-based sound pack types
+export type GenreSoundPack = 'none' | 'jazz' | 'classical' | 'electronic' | 'rock' | 'hiphop' | 'ambient';
+
+// Current selected genre pack
+let currentGenrePack: GenreSoundPack = 'none';
+
+// Genre sound pack configurations
+interface GenreSoundPackConfig {
+  name: string;
+  description: string;
+  soundMode: SoundMode;
+  defaultBeatPattern: BeatPattern;
+  colorTheme: string;
+  effects: {
+    reverb: number;     // 0-1 scale
+    delay: number;      // 0-1 scale
+    distortion: number; // 0-1 scale
+    filter: {
+      type: BiquadFilterType;
+      frequency: number;
+      Q: number;
+    } | null;
+  };
+}
+
+// Sound pack configurations for each genre
+export const GENRE_PACKS: Record<GenreSoundPack, GenreSoundPackConfig> = {
+  'none': {
+    name: 'None',
+    description: 'No genre effects applied',
+    soundMode: 'piano',
+    defaultBeatPattern: 'none',
+    colorTheme: 'blue',
+    effects: {
+      reverb: 0,
+      delay: 0,
+      distortion: 0,
+      filter: null
+    }
+  },
+  'jazz': {
+    name: 'Jazz',
+    description: 'Smooth jazz sounds with warm tones',
+    soundMode: 'piano',
+    defaultBeatPattern: 'groove',
+    colorTheme: 'blue',
+    effects: {
+      reverb: 0.3,
+      delay: 0.1,
+      distortion: 0,
+      filter: {
+        type: 'lowpass',
+        frequency: 2000,
+        Q: 1
+      }
+    }
+  },
+  'classical': {
+    name: 'Classical',
+    description: 'Rich orchestral sounds with natural reverb',
+    soundMode: 'piano',
+    defaultBeatPattern: 'none',
+    colorTheme: 'purple',
+    effects: {
+      reverb: 0.5,
+      delay: 0,
+      distortion: 0,
+      filter: {
+        type: 'highshelf',
+        frequency: 3000,
+        Q: 0.5
+      }
+    }
+  },
+  'electronic': {
+    name: 'Electronic',
+    description: 'Digital synth sounds with modern effects',
+    soundMode: 'synth',
+    defaultBeatPattern: 'electro',
+    colorTheme: 'pink',
+    effects: {
+      reverb: 0.2,
+      delay: 0.3,
+      distortion: 0.2,
+      filter: {
+        type: 'bandpass',
+        frequency: 1500,
+        Q: 5
+      }
+    }
+  },
+  'rock': {
+    name: 'Rock',
+    description: 'Distorted guitar-like tones with punch',
+    soundMode: 'funk',
+    defaultBeatPattern: 'basic',
+    colorTheme: 'green',
+    effects: {
+      reverb: 0.1,
+      delay: 0.1,
+      distortion: 0.5,
+      filter: {
+        type: 'peaking',
+        frequency: 500,
+        Q: 2
+      }
+    }
+  },
+  'hiphop': {
+    name: 'Hip Hop',
+    description: 'Deep bass sounds with rhythmic beats',
+    soundMode: 'funk',
+    defaultBeatPattern: 'groove',
+    colorTheme: 'blue',
+    effects: {
+      reverb: 0.2,
+      delay: 0.2,
+      distortion: 0.1,
+      filter: {
+        type: 'lowpass',
+        frequency: 1000,
+        Q: 1
+      }
+    }
+  },
+  'ambient': {
+    name: 'Ambient',
+    description: 'Atmospheric sounds with lots of space',
+    soundMode: 'synth',
+    defaultBeatPattern: 'none',
+    colorTheme: 'purple',
+    effects: {
+      reverb: 0.8,
+      delay: 0.4,
+      distortion: 0,
+      filter: {
+        type: 'lowpass',
+        frequency: 2500,
+        Q: 0.5
+      }
+    }
+  },
+};
+
 // Beat patterns - time in ms between kick and snare
 export const BEATS = {
   'none': [],
@@ -48,7 +192,7 @@ export function initAudioContext() {
   return audioContext;
 }
 
-// Play a note using WebAudio API with different instrument sounds
+// Play a note using WebAudio API with different instrument sounds and genre effects
 export function playNote(note: string, volume: number = 0.8, soundMode: SoundMode = 'piano') {
   // Check if we're in custom sound mode and have a custom sound for this note
   if (soundMode === 'custom' && hasCustomSound(note)) {
@@ -68,9 +212,22 @@ export function playNote(note: string, volume: number = 0.8, soundMode: SoundMod
   const oscillator = audioContext.createOscillator();
   const gainNode = audioContext.createGain();
   
-  // Additional effects for synth mode
+  // Get genre effects if a genre pack is selected
+  const genreEffects = currentGenrePack !== 'none' 
+    ? GENRE_PACKS[currentGenrePack].effects 
+    : null;
+  
+  // Apply sound mode first (before genre effects)
+  // If a genre pack is active, override the soundMode with the pack's soundMode
+  const effectiveSoundMode = (currentGenrePack !== 'none' && genreEffects) 
+    ? GENRE_PACKS[currentGenrePack].soundMode 
+    : soundMode;
+  
+  // Additional effect nodes
   let filterNode: BiquadFilterNode | null = null;
   let distortionNode: WaveShaperNode | null = null;
+  let delayNode: DelayNode | null = null;
+  let reverbNode: ConvolverNode | null = null;
   
   // Configure oscillator based on the selected sound mode
   switch (soundMode) {
@@ -336,6 +493,33 @@ export function stopBeat() {
 // Get current beat pattern
 export function getCurrentBeatPattern(): BeatPattern {
   return currentBeatPattern;
+}
+
+// Get current genre pack
+export function getCurrentGenrePack(): GenreSoundPack {
+  return currentGenrePack;
+}
+
+// Set a genre sound pack and apply its settings
+export function setGenrePack(genre: GenreSoundPack, applyDefaults: boolean = true): void {
+  // Update the current genre
+  currentGenrePack = genre;
+  
+  // Only apply defaults if requested
+  if (applyDefaults && genre !== 'none') {
+    const config = GENRE_PACKS[genre];
+    
+    // Apply the default beat pattern for this genre
+    if (config.defaultBeatPattern !== 'none') {
+      startBeat(config.defaultBeatPattern);
+      currentBeatPattern = config.defaultBeatPattern;
+    } else {
+      stopBeat();
+      currentBeatPattern = 'none';
+    }
+    
+    console.log(`Applied genre pack: ${config.name}`);
+  }
 }
 
 // Encode a recording to share
