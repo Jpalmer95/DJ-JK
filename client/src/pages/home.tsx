@@ -15,9 +15,13 @@ import {
   initAudioContext, 
   playNote, 
   type SoundMode, 
-  type BeatPattern, 
+  type BeatPattern,
+  type GenreSoundPack,
+  GENRE_PACKS,
   startBeat, 
-  stopBeat 
+  stopBeat,
+  setGenrePack,
+  getCurrentGenrePack
 } from "@/lib/audio";
 
 // Define the types for our recorded notes

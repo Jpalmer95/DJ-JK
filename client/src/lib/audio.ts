@@ -176,6 +176,7 @@ export interface RecordedSequence {
   notes: { noteIndex: number; time: number }[];
   soundMode: SoundMode;
   beatPattern: BeatPattern;
+  genrePack?: GenreSoundPack; // Added genre pack support
 }
 
 // Initialize audio context (must be done on user interaction)
@@ -227,10 +228,10 @@ export function playNote(note: string, volume: number = 0.8, soundMode: SoundMod
   let filterNode: BiquadFilterNode | null = null;
   let distortionNode: WaveShaperNode | null = null;
   let delayNode: DelayNode | null = null;
-  let reverbNode: ConvolverNode | null = null;
+  let reverbNode: AudioNode | null = null; // Changed to more generic type
   
   // Configure oscillator based on the selected sound mode
-  switch (soundMode) {
+  switch (effectiveSoundMode) {
     case 'piano':
       oscillator.type = 'sine';
       // Apply envelope for a piano-like sound
@@ -313,17 +314,125 @@ export function playNote(note: string, volume: number = 0.8, soundMode: SoundMod
   // Set the oscillator frequency
   oscillator.frequency.value = frequency;
   
-  // Connect nodes based on instrument type
-  if (soundMode === 'synth' && filterNode) {
-    oscillator.connect(filterNode);
-    filterNode.connect(gainNode);
-  } else if (soundMode === 'funk' && distortionNode) {
-    oscillator.connect(distortionNode);
-    distortionNode.connect(gainNode);
-  } else {
-    oscillator.connect(gainNode);
+  // Apply genre effects if a genre pack is active
+  if (genreEffects) {
+    // Apply distortion effect if specified in the genre
+    if (genreEffects.distortion > 0) {
+      distortionNode = audioContext.createWaveShaper();
+      distortionNode.curve = createDistortionCurve(genreEffects.distortion * 400);
+      distortionNode.oversample = '4x';
+    }
+    
+    // Apply filter effect if specified in the genre
+    if (genreEffects.filter) {
+      filterNode = audioContext.createBiquadFilter();
+      filterNode.type = genreEffects.filter.type;
+      filterNode.frequency.value = genreEffects.filter.frequency;
+      filterNode.Q.value = genreEffects.filter.Q;
+    }
+    
+    // Apply delay effect if specified in the genre
+    if (genreEffects.delay > 0) {
+      delayNode = audioContext.createDelay();
+      delayNode.delayTime.value = genreEffects.delay * 0.5; // Max 0.5 second delay
+      
+      // Create a feedback gain for the delay
+      const feedbackGain = audioContext.createGain();
+      feedbackGain.gain.value = genreEffects.delay * 0.4; // Max 40% feedback
+      
+      // Connect delay feedback loop
+      delayNode.connect(feedbackGain);
+      feedbackGain.connect(delayNode);
+    }
+    
+    // Apply reverb simulation if specified in the genre
+    if (genreEffects.reverb > 0) {
+      // Simple reverb simulation using delay nodes
+      const reverbGain = audioContext.createGain();
+      reverbGain.gain.value = genreEffects.reverb * 0.2; // Max 20% wet signal
+      
+      // Ensure audioContext is available
+      if (audioContext) {
+        // Create multiple delays for a simple reverb effect
+        const delays = [0.03, 0.05, 0.07, 0.11].map(time => {
+          const delay = audioContext.createDelay();
+          delay.delayTime.value = time;
+          const gain = audioContext.createGain();
+          gain.gain.value = 0.2 - (time * 0.5); // Attenuate longer delays
+          delay.connect(gain);
+          return { delay, gain };
+        });
+        
+        // Connect all reverb components
+        delays.forEach(({ delay, gain }) => {
+          gain.connect(reverbGain);
+        });
+        
+        // Store the first delay for the connection chain
+        const firstDelay = delays[0].delay;
+        reverbNode = firstDelay;
+      }
+    }
   }
   
+  // Build connection chain - from source to destination
+  // First connect the oscillator to either the filter, distortion, or directly to the gain
+  let lastNode: AudioNode = oscillator;
+  
+  // Start with basic instrument effects
+  if (effectiveSoundMode === 'synth' && filterNode) {
+    oscillator.connect(filterNode);
+    lastNode = filterNode;
+  } else if (effectiveSoundMode === 'funk' && distortionNode) {
+    oscillator.connect(distortionNode);
+    lastNode = distortionNode;
+  }
+  
+  // Then apply genre-specific effects in sequence
+  if (genreEffects) {
+    // Apply filter if we haven't already
+    if (genreEffects.filter && filterNode && lastNode !== filterNode) {
+      lastNode.connect(filterNode);
+      lastNode = filterNode;
+    }
+    
+    // Apply distortion if we haven't already
+    if (genreEffects.distortion > 0 && distortionNode && lastNode !== distortionNode) {
+      lastNode.connect(distortionNode);
+      lastNode = distortionNode;
+    }
+    
+    // Apply delay
+    if (genreEffects.delay > 0 && delayNode) {
+      // Connect the delay in parallel, not in series
+      lastNode.connect(delayNode);
+      // Don't update lastNode here as delay is a parallel effect
+    }
+    
+    // Apply reverb simulation
+    if (genreEffects.reverb > 0 && reverbNode) {
+      // Connect reverb in parallel for a cleaner sound
+      lastNode.connect(reverbNode);
+      // Don't update lastNode here as reverb is a parallel effect
+    }
+  }
+  
+  // Finally connect to the gain node and then to the destination
+  lastNode.connect(gainNode);
+  
+  // Connect any parallel effects (delay, reverb) to the gain node
+  if (delayNode) {
+    delayNode.connect(gainNode);
+  }
+  
+  if (reverbNode) {
+    // For our simple reverb, we need to connect each delay's gain to the output
+    const reverbGain = audioContext.createGain();
+    reverbGain.gain.value = genreEffects?.reverb || 0;
+    reverbGain.connect(gainNode);
+  }
+  
+  // Final connection to the output
   gainNode.connect(audioContext.destination);
   
   // Start and stop oscillator
