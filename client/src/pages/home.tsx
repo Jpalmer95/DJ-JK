@@ -223,16 +223,12 @@ export default function Home() {
           {/* Donation Link */}
           <div className="mt-2 text-center">
             <a 
-              href="https://commerce.coinbase.com/checkout/0xe0B8939Cf214DF3d6660C502CFcE3A86055631B8"
+              href="https://buymeacoffee.com/jkorstad"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center text-sm font-medium text-amber-600 hover:text-amber-800 transition-colors"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 mr-1">
-                <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/>
-                <path d="M12 10.5c-1.5 0-2.7.85-2.7 1.9s1.2 1.9 2.7 1.9 2.7-.85 2.7-1.9-1.2-1.9-2.7-1.9zm0 2.8c-.8 0-1.5-.4-1.5-.9s.7-.9 1.5-.9 1.5.4 1.5.9-.7.9-1.5.9z"/>
-                <path d="M15.7 8.1H8.3c-.5 0-.9.4-.9.9v2.6c0 .26.14.5.36.64h-.01l3.7 2.6c.36.26.84.26 1.2 0l3.7-2.6h-.01c.22-.14.36-.38.36-.64V9c0-.5-.4-.9-.9-.9zm-.3 3.3l-3.4 2.4-3.4-2.4V9.3h6.8v2.1z"/>
-              </svg>
+              <span className="mr-1" role="img" aria-label="coffee">☕</span>
               Buy me a coffee
             </a>
           </div>
