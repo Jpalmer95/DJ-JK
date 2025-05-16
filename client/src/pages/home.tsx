@@ -52,6 +52,10 @@ export default function Home() {
   const [currentSoundMode, setCurrentSoundMode] = useState<SoundMode>("piano");
   const [currentBeatPattern, setCurrentBeatPattern] = useState<BeatPattern>("none");
   const [beatEnabled, setBeatEnabled] = useState(false);
+  
+  // Genre Sound Pack Feature
+  const [currentGenreSoundPack, setCurrentGenreSoundPack] = useState<GenreSoundPack>("none");
+  const [genreDescription, setGenreDescription] = useState("");
   const [gridSizeMultiplier, setGridSizeMultiplier] = useState(1); // Grid size multiplier (1-3)
   
   const recordingStartTimeRef = useRef<number | null>(null);
@@ -172,12 +176,55 @@ export default function Home() {
   
   // Change beat pattern
   const handleBeatPatternChange = (pattern: BeatPattern) => {
+    if (pattern === 'none') {
+      stopBeat();
+      setBeatEnabled(false);
+    } else {
+      startBeat(pattern, baseTrackVolume);
+      setBeatEnabled(true);
+    }
     setCurrentBeatPattern(pattern);
   };
   
   // Toggle beat on/off
   const toggleBeat = (enabled: boolean) => {
+    if (enabled) {
+      if (currentBeatPattern !== 'none') {
+        startBeat(currentBeatPattern, baseTrackVolume);
+      }
+    } else {
+      stopBeat();
+    }
     setBeatEnabled(enabled);
+  };
+  
+  // Handle genre sound pack changes
+  const handleGenrePackChange = (genre: GenreSoundPack) => {
+    // Update the local state
+    setCurrentGenreSoundPack(genre);
+    
+    // Set description text
+    if (genre === 'none') {
+      setGenreDescription("");
+    } else {
+      setGenreDescription(GENRE_PACKS[genre].description);
+      
+      // If we're changing from none to a specific genre, update the theme color
+      if (currentGenreSoundPack === 'none') {
+        setThemeColor(GENRE_PACKS[genre].colorTheme);
+      }
+    }
+    
+    // Apply the genre pack (this will update sound mode and beat pattern)
+    setGenrePack(genre, true);
+    
+    // Update state to match what the genre pack set
+    if (genre !== 'none') {
+      const packConfig = GENRE_PACKS[genre];
+      setCurrentSoundMode(packConfig.soundMode);
+      setCurrentBeatPattern(packConfig.defaultBeatPattern);
+      setBeatEnabled(packConfig.defaultBeatPattern !== 'none');
+    }
   };
 
   // Save settings
@@ -193,7 +240,8 @@ export default function Home() {
     return {
       notes: recordedSequence,
       soundMode: currentSoundMode,
-      beatPattern: beatEnabled ? currentBeatPattern : 'none'
+      beatPattern: beatEnabled ? currentBeatPattern : 'none',
+      genrePack: currentGenreSoundPack
     };
   };
 
@@ -244,12 +292,84 @@ export default function Home() {
         <div className="max-w-4xl mx-auto">
           {/* Instrument Selector Tabs */}
           <Tabs defaultValue="soundMode" className="mb-6">
-            <TabsList className="grid grid-cols-4 w-full max-w-md mx-auto">
+            <TabsList className="grid grid-cols-5 w-full max-w-md mx-auto">
               <TabsTrigger value="soundMode">Sound Mode</TabsTrigger>
+              <TabsTrigger value="genrePacks">Genre Packs</TabsTrigger>
               <TabsTrigger value="beatControl">Beat Control</TabsTrigger>
               <TabsTrigger value="gridSize">Grid Size</TabsTrigger>
               <TabsTrigger value="baseTrack">Base Track</TabsTrigger>
             </TabsList>
+            
+            <TabsContent value="genrePacks" className="mt-4">
+              <div className="bg-white rounded-xl shadow-sm p-4">
+                <div className="flex items-center mb-3">
+                  <Music className="h-5 w-5 text-gray-600 mr-2" />
+                  <h3 className="font-medium">Musical Genre Sound Packs</h3>
+                </div>
+                
+                <p className="text-sm text-gray-500 mb-3">
+                  Apply genre-specific sound effects, beats, and tone colors to your music.
+                </p>
+                
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
+                  <Button 
+                    variant={currentGenreSoundPack === 'none' ? 'default' : 'outline'} 
+                    className={`${currentGenreSoundPack === 'none' ? 'bg-gray-600 text-white' : 'bg-white'} rounded-lg`}
+                    onClick={() => handleGenrePackChange('none')}
+                  >
+                    None
+                  </Button>
+                  <Button 
+                    variant={currentGenreSoundPack === 'jazz' ? 'default' : 'outline'} 
+                    className={`${currentGenreSoundPack === 'jazz' ? 'bg-blue-600 text-white' : 'bg-white'} rounded-lg`}
+                    onClick={() => handleGenrePackChange('jazz')}
+                  >
+                    Jazz
+                  </Button>
+                  <Button 
+                    variant={currentGenreSoundPack === 'classical' ? 'default' : 'outline'} 
+                    className={`${currentGenreSoundPack === 'classical' ? 'bg-purple-600 text-white' : 'bg-white'} rounded-lg`}
+                    onClick={() => handleGenrePackChange('classical')}
+                  >
+                    Classical
+                  </Button>
+                  <Button 
+                    variant={currentGenreSoundPack === 'electronic' ? 'default' : 'outline'} 
+                    className={`${currentGenreSoundPack === 'electronic' ? 'bg-pink-600 text-white' : 'bg-white'} rounded-lg`}
+                    onClick={() => handleGenrePackChange('electronic')}
+                  >
+                    Electronic
+                  </Button>
+                  <Button 
+                    variant={currentGenreSoundPack === 'rock' ? 'default' : 'outline'} 
+                    className={`${currentGenreSoundPack === 'rock' ? 'bg-green-600 text-white' : 'bg-white'} rounded-lg`}
+                    onClick={() => handleGenrePackChange('rock')}
+                  >
+                    Rock
+                  </Button>
+                  <Button 
+                    variant={currentGenreSoundPack === 'hiphop' ? 'default' : 'outline'} 
+                    className={`${currentGenreSoundPack === 'hiphop' ? 'bg-blue-600 text-white' : 'bg-white'} rounded-lg`}
+                    onClick={() => handleGenrePackChange('hiphop')}
+                  >
+                    Hip Hop
+                  </Button>
+                  <Button 
+                    variant={currentGenreSoundPack === 'ambient' ? 'default' : 'outline'} 
+                    className={`${currentGenreSoundPack === 'ambient' ? 'bg-purple-600 text-white' : 'bg-white'} rounded-lg col-span-full`}
+                    onClick={() => handleGenrePackChange('ambient')}
+                  >
+                    Ambient
+                  </Button>
+                </div>
+                
+                {genreDescription && (
+                  <div className="p-3 bg-gray-50 text-sm rounded-lg border border-gray-200">
+                    <p className="text-gray-700">{genreDescription}</p>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
             
             <TabsContent value="soundMode" className="mt-4">
               <div className="bg-white rounded-xl shadow-sm p-4">
