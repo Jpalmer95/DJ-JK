@@ -572,6 +572,21 @@ const CustomSoundsModal = ({ isOpen, onClose }: CustomSoundsModalProps) => {
                           Upload Sound for {selectedNote}
                         </Button>
                       </div>
+                      
+                      {/* Waveform Visualizer for uploaded audio */}
+                      {uploadedFilePreviewUrl && (
+                        <div className="mt-2">
+                          <div className="text-xs font-medium text-gray-700 mb-1 flex items-center">
+                            <BarChart2 className="h-3 w-3 mr-1" />
+                            Sound Preview
+                          </div>
+                          <AudioPreview 
+                            audioUrl={uploadedFilePreviewUrl}
+                            color="#3b82f6" 
+                            compact={true}
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 </TabsContent>
