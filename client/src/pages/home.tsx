@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 import { 
   initAudioContext, 
   playNote, 
@@ -27,6 +28,9 @@ interface RecordedNote {
 }
 
 export default function Home() {
+  // Toast notification
+  const { toast } = useToast();
+  
   // UI State
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -148,12 +152,26 @@ export default function Home() {
     }
   };
 
-  // Reset everything
+  // Reset to default piano mode and standard size
   const handleReset = () => {
+    // Reset recording state
     setIsRecording(false);
     setRecordedSequence([]);
     setHasRecorded(false);
     recordingStartTimeRef.current = null;
+    
+    // Reset to standard piano mode
+    setCurrentSoundMode('piano');
+    
+    // Reset grid size to standard
+    setGridSizeMultiplier(1);
+    
+    // Reset beat to off
+    setBeatEnabled(false);
+    setCurrentBeatPattern('none');
+    
+    // Note: intentionally NOT clearing custom sounds
+    // Those should only be managed in the custom sounds modal
   };
 
   // Change sound mode
@@ -391,8 +409,19 @@ export default function Home() {
           <div className="flex flex-wrap justify-center gap-3 mt-8">
             <Button 
               variant="outline" 
-              className="px-4 py-2 bg-white shadow-sm hover:bg-gray-50 text-gray-700 font-medium"
-              onClick={handleReset}
+              className="px-4 py-2 bg-white shadow-sm hover:bg-gray-50 text-gray-700 font-medium transition-all active:scale-95"
+              onClick={() => {
+                handleReset();
+                // Show toast notification for reset confirmation
+                toast({
+                  title: "Reset Complete",
+                  description: "Piano has been reset to standard mode",
+                  duration: 1500
+                });
+                const btn = document.activeElement as HTMLElement;
+                if (btn) btn.blur(); // Remove focus after click for better mobile UX
+              }}
+              title="Reset to standard piano mode"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
               Reset
