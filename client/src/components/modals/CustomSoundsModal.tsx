@@ -54,9 +54,10 @@ const DraggableSound: React.FC<DraggableSoundProps> = ({ note, onDragStart }) =>
   return (
     <div
       ref={drag}
-      className={`bg-gray-100 p-2 rounded-md text-center text-sm cursor-move flex items-center justify-between ${
-        isDragging ? 'opacity-50' : ''
-      }`}
+      className={`bg-gray-100 p-2 rounded-md text-center text-sm cursor-move flex items-center justify-between 
+        ${isDragging ? 'opacity-50' : ''}
+        ${hasCustomSound(note) ? 'border-blue-400 border-2' : 'border border-gray-300'}`}
+      style={{ cursor: 'grab' }}
     >
       <span>{note}</span>
       <Move className="h-4 w-4 ml-2 text-gray-500" />
@@ -88,7 +89,7 @@ const SoundDropTarget: React.FC<SoundDropTargetProps> = ({ note, onDrop, childre
   const isActive = isOver && canDrop;
   const backgroundColor = isActive
     ? 'bg-blue-100'
-    : canDrop
+    : hasCustomSound(note)
     ? 'bg-gray-50'
     : 'bg-white';
 
@@ -96,8 +97,9 @@ const SoundDropTarget: React.FC<SoundDropTargetProps> = ({ note, onDrop, childre
     <div
       ref={drop}
       className={`border-2 ${
-        isActive ? 'border-blue-500' : 'border-gray-200'
+        isActive ? 'border-blue-500' : hasCustomSound(note) ? 'border-green-500' : 'border-gray-200'
       } p-2 rounded-md ${backgroundColor} transition-colors`}
+      style={{ minHeight: '60px' }}
     >
       {children}
     </div>
