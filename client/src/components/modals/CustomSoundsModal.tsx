@@ -125,6 +125,9 @@ const CustomSoundsModal = ({ isOpen, onClose }: CustomSoundsModalProps) => {
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [recordingPreviewUrl, setRecordingPreviewUrl] = useState<string | null>(null);
   
+  // File upload state
+  const [uploadedFilePreviewUrl, setUploadedFilePreviewUrl] = useState<string | null>(null);
+  
   // Refs
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -136,6 +139,16 @@ const CustomSoundsModal = ({ isOpen, onClose }: CustomSoundsModalProps) => {
     if (isOpen) {
       refreshUploadedSounds();
       loadSoundLibrary();
+    } else {
+      // Clean up any URL objects to prevent memory leaks when closing the modal
+      if (recordingPreviewUrl) {
+        URL.revokeObjectURL(recordingPreviewUrl);
+        setRecordingPreviewUrl(null);
+      }
+      if (uploadedFilePreviewUrl) {
+        URL.revokeObjectURL(uploadedFilePreviewUrl);
+        setUploadedFilePreviewUrl(null);
+      }
     }
   }, [isOpen]);
   
@@ -144,6 +157,15 @@ const CustomSoundsModal = ({ isOpen, onClose }: CustomSoundsModalProps) => {
     const sounds = getSoundLibrary();
     setSoundLibrary(sounds);
   };
+  
+  // Reset preview URLs when changing notes
+  useEffect(() => {
+    // Clean up previous URLs
+    if (uploadedFilePreviewUrl) {
+      URL.revokeObjectURL(uploadedFilePreviewUrl);
+      setUploadedFilePreviewUrl(null);
+    }
+  }, [selectedNote]);
   
   // Refresh the list of uploaded sounds
   const refreshUploadedSounds = () => {
@@ -168,6 +190,10 @@ const CustomSoundsModal = ({ isOpen, onClose }: CustomSoundsModalProps) => {
       reader.onload = (event) => {
         if (event.target && event.target.result) {
           const blob = new Blob([event.target.result], { type: file.type });
+          
+          // Create a URL for the blob to display the waveform
+          const audioUrl = URL.createObjectURL(blob);
+          setUploadedFilePreviewUrl(audioUrl);
           
           // Set the custom sound for the selected note
           setCustomSound(selectedNote, blob);
@@ -616,7 +642,7 @@ const CustomSoundsModal = ({ isOpen, onClose }: CustomSoundsModalProps) => {
                       {recordingPreviewUrl && (
                         <div className="mt-2">
                           <div className="text-xs font-medium text-gray-700 mb-1 flex items-center">
-                            <Waveform className="h-3 w-3 mr-1" />
+                            <BarChart2 className="h-3 w-3 mr-1" />
                             Sound Preview
                           </div>
                           <AudioPreview 
