@@ -17,7 +17,7 @@ const PianoKey = ({
 }: PianoKeyProps) => {
   return (
     <motion.div
-      className={`${colorClass} rounded-xl shadow-md flex items-center justify-center aspect-square cursor-pointer hover:shadow-lg relative overflow-hidden`}
+      className={`${colorClass} rounded-xl shadow-md flex items-center justify-center aspect-square cursor-pointer hover:shadow-lg relative overflow-hidden max-w-[120px] max-h-[120px] w-full h-full`}
       whileTap={animationsEnabled ? { scale: 0.95 } : {}}
       whileHover={animationsEnabled ? { scale: 1.02 } : {}}
       animate={isActive && animationsEnabled ? { scale: [1, 0.92, 1] } : {}}

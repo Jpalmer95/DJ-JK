@@ -162,12 +162,31 @@ const PianoGrid = forwardRef<any, PianoGridProps>(({
     }
   }));
   
-  // Calculate grid column classes based on dimensions
-  const gridColumnClass = `grid-cols-${gridDimensions.cols}`;
+  // Map grid dimensions to explicit Tailwind classes
+  const getGridColumnClass = (cols: number) => {
+    // Map specific column counts to explicit tailwind classes
+    switch (cols) {
+      case 4: return 'grid-cols-4';
+      case 5: return 'grid-cols-5';
+      case 6: return 'grid-cols-6';
+      case 7: return 'grid-cols-7';
+      case 8: return 'grid-cols-8';
+      case 9: return 'grid-cols-9';
+      case 10: return 'grid-cols-10';
+      case 11: return 'grid-cols-11';
+      case 12: return 'grid-cols-12';
+      default: return 'grid-cols-4'; // Fallback to 4 columns
+    }
+  };
+  
+  const gridColumnClass = getGridColumnClass(gridDimensions.cols);
   
   return (
     <motion.div 
       className={`grid ${gridColumnClass} gap-3 sm:gap-4 mb-8`}
+      style={{
+        gridTemplateColumns: `repeat(${gridDimensions.cols}, minmax(0, 1fr))` // Explicit fallback
+      }}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, staggerChildren: 0.05 }}
