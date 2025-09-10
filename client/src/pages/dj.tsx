@@ -1,22 +1,26 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
-import { Progress } from '@/components/ui/progress';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { DJMixer, DJDeck, DJTrackInfo } from '@/lib/djAudio';
 import { DjTrack } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
-import { Play, Pause, Square, Upload, Volume2, RotateCcw, RotateCw, Music, Settings } from 'lucide-react';
+import { Upload, Volume2, Music, Settings, Headphones, Radio } from 'lucide-react';
 import WaveformVisualizer from '@/components/WaveformVisualizer';
+import BPMDisplay from '@/components/dj/BPMDisplay';
+import CuePointControl from '@/components/dj/CuePointControl';
+import LoopControl from '@/components/dj/LoopControl';
+import TransportControls from '@/components/dj/TransportControls';
 import SunoGenerator from '@/components/SunoGenerator';
 import MoodMenu from '@/components/MoodMenu';
 import MoodJourneyTracker from '@/components/MoodJourneyTracker';
 import type { SunoTrackResult } from '@/lib/sunoApi';
 
-interface DeckControlProps {
+interface ProfessionalDeckProps {
   deck: DJDeck;
+  otherDeck?: DJDeck;
   deckLabel: string;
   onLoadTrack: (file: File) => void;
   currentTime: number;
@@ -28,8 +32,9 @@ interface DeckControlProps {
   onPitchChange: (percentage: number) => void;
 }
 
-function DeckControl({ 
+function ProfessionalDeck({ 
   deck, 
+  otherDeck,
   deckLabel, 
   onLoadTrack, 
   currentTime, 
@@ -39,21 +44,13 @@ function DeckControl({
   pitchPercentage,
   onVolumeChange,
   onPitchChange
-}: DeckControlProps) {
+}: ProfessionalDeckProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       onLoadTrack(file);
-    }
-  };
-
-  const handlePlayPause = () => {
-    if (isPlaying) {
-      deck.pause();
-    } else {
-      deck.play();
     }
   };
 
@@ -80,132 +77,133 @@ function DeckControl({
   };
 
   return (
-    <Card className="bg-gray-900 border-gray-700 p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-xl font-bold text-white">{deckLabel}</h3>
-        <Button
-          variant="outline"
-          size="sm"
-          className="border-gray-600 text-gray-300 hover:bg-gray-800"
-          onClick={() => fileInputRef.current?.click()}
-          data-testid={`button-load-track-${deckLabel.toLowerCase().replace(' ', '-')}`}
-        >
-          <Upload className="w-4 h-4 mr-2" />
-          Load Track
-        </Button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="audio/*"
-          onChange={handleFileChange}
-          className="hidden"
-        />
-      </div>
-
-      {/* Track Info */}
-      <div className="bg-gray-800 p-3 rounded-lg">
-        <div className="text-white font-semibold" data-testid={`text-track-title-${deckLabel.toLowerCase().replace(' ', '-')}`}>
-          {deck.trackInfo?.title || 'No Track Loaded'}
-        </div>
-        <div className="text-gray-400 text-sm" data-testid={`text-track-artist-${deckLabel.toLowerCase().replace(' ', '-')}`}>
-          {deck.trackInfo?.artist || 'Select an audio file'}
-        </div>
-        <div className="text-gray-400 text-xs mt-1">
-          {formatTime(currentTime)} / {formatTime(duration)}
-        </div>
-      </div>
-
-      {/* Waveform Display */}
-      <div className="h-16 bg-gray-800 rounded-lg flex items-center justify-center">
-        {deck.trackInfo?.url ? (
-          <WaveformVisualizer 
-            audioUrl={deck.trackInfo.url} 
-            color="#10b981" 
-            height={60}
-            playing={isPlaying}
-          />
-        ) : (
-          <div className="text-gray-500 text-sm">Load track to see waveform</div>
-        )}
-      </div>
-
-      {/* Progress Bar */}
-      <div className="space-y-2">
-        <Slider
-          value={[currentTime]}
-          max={duration}
-          step={0.1}
-          onValueChange={handleSeek}
-          className="w-full"
-          data-testid={`slider-progress-${deckLabel.toLowerCase().replace(' ', '-')}`}
-        />
-      </div>
-
-      {/* Transport Controls */}
-      <div className="flex items-center justify-center space-x-4">
-        <Button
-          variant="outline"
-          size="lg"
-          className={`${isPlaying ? 'bg-red-600 hover:bg-red-700 border-red-500' : 'bg-green-600 hover:bg-green-700 border-green-500'} text-white`}
-          onClick={handlePlayPause}
-          data-testid={`button-play-pause-${deckLabel.toLowerCase().replace(' ', '-')}`}
-        >
-          {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
-        </Button>
-        <Button
-          variant="outline"
-          size="lg"
-          className="border-gray-600 text-gray-300 hover:bg-gray-800"
-          onClick={() => deck.stop()}
-          data-testid={`button-stop-${deckLabel.toLowerCase().replace(' ', '-')}`}
-        >
-          <Square className="w-6 h-6" />
-        </Button>
-      </div>
-
-      {/* Volume Control */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Volume2 className="w-4 h-4 text-gray-400" />
-          <span className="text-sm text-gray-400">{Math.round(volume * 100)}%</span>
-        </div>
-        <Slider
-          value={[volume * 100]}
-          max={100}
-          step={1}
-          onValueChange={handleVolumeChange}
-          className="w-full"
-          data-testid={`slider-volume-${deckLabel.toLowerCase().replace(' ', '-')}`}
-        />
-      </div>
-
-      {/* Pitch Control */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-1">
-            <RotateCcw className="w-4 h-4 text-gray-400" />
-            <span className="text-sm text-gray-400">Pitch</span>
-            <RotateCw className="w-4 h-4 text-gray-400" />
+    <div className="space-y-4">
+      {/* Deck Header */}
+      <Card className="bg-gray-900 border-gray-700">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center justify-between">
+            <span className="text-white text-xl">{deckLabel}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-gray-600 text-gray-300 hover:bg-gray-800"
+              onClick={() => fileInputRef.current?.click()}
+              data-testid={`button-load-track-${deckLabel.toLowerCase().replace(' ', '-')}`}
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Load Track
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="audio/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Track Info */}
+          <div className="bg-gray-800 p-3 rounded-lg">
+            <div className="text-white font-semibold" data-testid={`text-track-title-${deckLabel.toLowerCase().replace(' ', '-')}`}>
+              {deck.trackInfo?.title || 'No Track Loaded'}
+            </div>
+            <div className="text-gray-400 text-sm" data-testid={`text-track-artist-${deckLabel.toLowerCase().replace(' ', '-')}`}>
+              {deck.trackInfo?.artist || 'Select an audio file'}
+            </div>
+            <div className="text-gray-400 text-xs mt-1">
+              {formatTime(currentTime)} / {formatTime(duration)}
+            </div>
           </div>
-          <span className="text-sm text-gray-400">
-            {pitchPercentage > 0 ? '+' : ''}{pitchPercentage.toFixed(1)}%
-          </span>
+
+          {/* Professional Waveform Display */}
+          <div className="h-20 bg-gray-800 rounded-lg flex items-center justify-center">
+            {deck.trackInfo?.url ? (
+              <WaveformVisualizer 
+                audioUrl={deck.trackInfo.url}
+                deck={deck}
+                color="#10b981" 
+                height={80}
+                playing={isPlaying}
+                currentTime={currentTime}
+                duration={duration}
+              />
+            ) : (
+              <div className="text-gray-500 text-sm">Load track to see professional waveform</div>
+            )}
+          </div>
+
+          {/* Progress Bar with Enhanced Features */}
+          <div className="space-y-2">
+            <Slider
+              value={[currentTime]}
+              max={duration}
+              step={0.1}
+              onValueChange={handleSeek}
+              className="w-full"
+              data-testid={`slider-progress-${deckLabel.toLowerCase().replace(' ', '-')}`}
+            />
+          </div>
+
+          {/* Basic Volume and Pitch Controls */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Volume Control */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Volume2 className="w-4 h-4 text-gray-400" />
+                <span className="text-sm text-gray-400">{Math.round(volume * 100)}%</span>
+              </div>
+              <Slider
+                value={[volume * 100]}
+                max={100}
+                step={1}
+                onValueChange={handleVolumeChange}
+                className="w-full"
+                data-testid={`slider-volume-${deckLabel.toLowerCase().replace(' ', '-')}`}
+              />
+            </div>
+
+            {/* Pitch Control */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-400">Pitch</span>
+                <span className="text-sm text-gray-400">
+                  {pitchPercentage > 0 ? '+' : ''}{pitchPercentage.toFixed(1)}%
+                </span>
+              </div>
+              <Slider
+                value={[pitchPercentage]}
+                min={-12}
+                max={12}
+                step={0.1}
+                onValueChange={handlePitchChange}
+                className="w-full"
+                data-testid={`slider-pitch-${deckLabel.toLowerCase().replace(' ', '-')}`}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Professional DJ Controls Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* BPM and Transport Controls */}
+        <div className="space-y-4">
+          <BPMDisplay deck={deck} otherDeck={otherDeck} />
+          <TransportControls deck={deck} />
         </div>
-        <Slider
-          value={[pitchPercentage]}
-          min={-12}
-          max={12}
-          step={0.1}
-          onValueChange={handlePitchChange}
-          className="w-full"
-          data-testid={`slider-pitch-${deckLabel.toLowerCase().replace(' ', '-')}`}
-        />
+        
+        {/* Cue Points and Loops */}
+        <div className="space-y-4">
+          <CuePointControl deck={deck} />
+          <LoopControl deck={deck} />
+        </div>
       </div>
-    </Card>
+    </div>
   );
 }
 
-interface MixerControlProps {
+interface ProfessionalMixerProps {
   mixer: DJMixer;
   crossfaderPosition: number;
   masterVolume: number;
@@ -213,7 +211,7 @@ interface MixerControlProps {
   onMasterVolumeChange: (volume: number) => void;
 }
 
-function MixerControl({ mixer, crossfaderPosition, masterVolume, onCrossfaderChange, onMasterVolumeChange }: MixerControlProps) {
+function ProfessionalMixer({ mixer, crossfaderPosition, masterVolume, onCrossfaderChange, onMasterVolumeChange }: ProfessionalMixerProps) {
   const handleCrossfaderChange = (newPosition: number[]) => {
     const position = newPosition[0] / 100;
     mixer.setCrossfader(position);
@@ -230,53 +228,128 @@ function MixerControl({ mixer, crossfaderPosition, masterVolume, onCrossfaderCha
     mixer.syncTempos();
   };
 
+  const handleAutoMix = () => {
+    // Professional auto-mix feature placeholder
+    console.log('Auto-mix activated');
+  };
+
   return (
-    <Card className="bg-gray-900 border-gray-700 p-6 space-y-6">
-      <h3 className="text-xl font-bold text-white text-center">Mixer</h3>
-      
-      {/* Crossfader */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-400">Deck A</span>
-          <span className="text-sm text-gray-400">Crossfader</span>
-          <span className="text-sm text-gray-400">Deck B</span>
+    <Card className="bg-gray-900 border-gray-700">
+      <CardHeader>
+        <CardTitle className="text-white text-center flex items-center justify-center">
+          <Radio className="w-5 h-5 mr-2" />
+          Professional Mixer
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Crossfader */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-400">Deck A</span>
+            <span className="text-sm text-gray-400 font-semibold">Crossfader</span>
+            <span className="text-sm text-gray-400">Deck B</span>
+          </div>
+          <div className="relative">
+            <Slider
+              value={[crossfaderPosition * 100]}
+              max={100}
+              step={1}
+              onValueChange={handleCrossfaderChange}
+              className="w-full"
+              data-testid="slider-crossfader"
+            />
+            {/* Crossfader position indicator */}
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <span>A</span>
+              <span>Center</span>
+              <span>B</span>
+            </div>
+          </div>
         </div>
-        <Slider
-          value={[crossfaderPosition * 100]}
-          max={100}
-          step={1}
-          onValueChange={handleCrossfaderChange}
-          className="w-full"
-          data-testid="slider-crossfader"
-        />
-      </div>
 
-      {/* Master Volume */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Volume2 className="w-4 h-4 text-gray-400" />
-          <span className="text-sm text-gray-400">Master</span>
-          <span className="text-sm text-gray-400">{Math.round(masterVolume * 100)}%</span>
+        {/* Master Volume */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Volume2 className="w-4 h-4 text-gray-400" />
+            <span className="text-sm text-gray-400 font-semibold">Master Volume</span>
+            <span className="text-sm text-gray-400">{Math.round(masterVolume * 100)}%</span>
+          </div>
+          <Slider
+            value={[masterVolume * 100]}
+            max={100}
+            step={1}
+            onValueChange={handleMasterVolumeChange}
+            className="w-full"
+            data-testid="slider-master-volume"
+          />
         </div>
-        <Slider
-          value={[masterVolume * 100]}
-          max={100}
-          step={1}
-          onValueChange={handleMasterVolumeChange}
-          className="w-full"
-          data-testid="slider-master-volume"
-        />
-      </div>
 
-      {/* Sync Button */}
-      <Button
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-        onClick={handleSyncTempos}
-        data-testid="button-sync-tempos"
-      >
-        <Music className="w-4 h-4 mr-2" />
-        Sync Tempos
-      </Button>
+        {/* Professional Controls */}
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            variant="outline"
+            className="border-blue-600 text-blue-400 hover:bg-blue-900"
+            onClick={handleSyncTempos}
+            data-testid="button-sync-tempos"
+          >
+            <Music className="w-4 h-4 mr-1" />
+            Sync
+          </Button>
+          
+          <Button
+            variant="outline"
+            className="border-purple-600 text-purple-400 hover:bg-purple-900"
+            onClick={handleAutoMix}
+            data-testid="button-auto-mix"
+          >
+            <Settings className="w-4 h-4 mr-1" />
+            Auto Mix
+          </Button>
+        </div>
+
+        {/* Headphone Controls */}
+        <div className="space-y-2 border-t border-gray-700 pt-4">
+          <div className="flex items-center justify-center">
+            <Headphones className="w-4 h-4 mr-2 text-gray-400" />
+            <span className="text-sm text-gray-400">Headphone Cue</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-green-600 text-green-400 hover:bg-green-900"
+              data-testid="button-cue-a"
+            >
+              Cue A
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-green-600 text-green-400 hover:bg-green-900"
+              data-testid="button-cue-b"
+            >
+              Cue B
+            </Button>
+          </div>
+        </div>
+
+        {/* Mixer Stats */}
+        <div className="bg-gray-800 rounded-lg p-3">
+          <div className="text-xs text-gray-400 text-center mb-2">Mixer Status</div>
+          <div className="grid grid-cols-2 gap-4 text-xs text-center">
+            <div>
+              <div className="text-gray-400">Position</div>
+              <div className="text-white font-mono">
+                {crossfaderPosition < 0.4 ? 'A' : crossfaderPosition > 0.6 ? 'B' : 'Center'}
+              </div>
+            </div>
+            <div>
+              <div className="text-gray-400">Level</div>
+              <div className="text-white font-mono">{Math.round(masterVolume * 100)}%</div>
+            </div>
+          </div>
+        </div>
+      </CardContent>
     </Card>
   );
 }
@@ -329,23 +402,26 @@ function TrackBrowser({ onLoadTrackToDeck }: TrackBrowserProps) {
   });
 
   return (
-    <Card className="bg-gray-900 border-gray-700 p-6 space-y-4">
-      <h3 className="text-xl font-bold text-white">Track Library</h3>
-      
-      <div className="text-center p-8 border-2 border-dashed border-gray-600 rounded-lg">
-        <Music className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-        <div className="text-gray-400 mb-4">
-          Track library will be available with user authentication
+    <Card className="bg-gray-900 border-gray-700">
+      <CardHeader>
+        <CardTitle className="text-white">Track Library</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-center p-8 border-2 border-dashed border-gray-600 rounded-lg">
+          <Music className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <div className="text-gray-400 mb-4">
+            Track library will be available with user authentication
+          </div>
+          <div className="text-sm text-gray-500">
+            For now, use the "Load Track" buttons on each deck to load audio files directly
+          </div>
         </div>
-        <div className="text-sm text-gray-500">
-          For now, use the "Load Track" buttons on each deck to load audio files directly
-        </div>
-      </div>
+      </CardContent>
     </Card>
   );
 }
 
-export default function DJPage() {
+export default function ProfessionalDJPage() {
   const [mixer] = useState(() => new DJMixer());
   const [deckAState, setDeckAState] = useState({
     currentTime: 0,
@@ -387,7 +463,7 @@ export default function DJPage() {
     });
 
     return () => {
-      // Clear event callbacks to prevent memory leaks (don't destroy the whole mixer)
+      // Clear event callbacks to prevent memory leaks
       mixer.deckA.onTimeUpdate(() => {});
       mixer.deckA.onPlayStateChange(() => {});
       mixer.deckB.onTimeUpdate(() => {});
@@ -395,9 +471,8 @@ export default function DJPage() {
     };
   }, [mixer]);
 
-  const handleLoadTrackToDeckA = async (file: File) => {
+  const handleLoadTrackA = async (file: File) => {
     try {
-      // Create object URL for waveform visualization
       const audioUrl = URL.createObjectURL(file);
       
       const trackInfo: DJTrackInfo = {
@@ -405,7 +480,7 @@ export default function DJPage() {
         artist: "Unknown Artist",
         duration: 0,
         file: file,
-        url: audioUrl, // Add URL for waveform
+        url: audioUrl,
       };
 
       await mixer.deckA.loadTrack(file, trackInfo);
@@ -430,9 +505,8 @@ export default function DJPage() {
     }
   };
 
-  const handleLoadTrackToDeckB = async (file: File) => {
+  const handleLoadTrackB = async (file: File) => {
     try {
-      // Create object URL for waveform visualization
       const audioUrl = URL.createObjectURL(file);
       
       const trackInfo: DJTrackInfo = {
@@ -440,7 +514,7 @@ export default function DJPage() {
         artist: "Unknown Artist", 
         duration: 0,
         file: file,
-        url: audioUrl, // Add URL for waveform
+        url: audioUrl,
       };
 
       await mixer.deckB.loadTrack(file, trackInfo);
@@ -465,16 +539,14 @@ export default function DJPage() {
     }
   };
 
-  const handleLoadTrackFromLibrary = async (track: DjTrack, deckId: string) => {
-    // This will be implemented when we have proper track storage
+  const handleLoadTrackToDeck = async (track: DjTrack, deckId: string) => {
     toast({
       title: "Feature coming soon",
       description: "Loading tracks from library will be available with user authentication",
     });
   };
 
-  // Load AI-generated track from Suno
-  const handleLoadSunoTrack = async (track: SunoTrackResult, deckId: string) => {
+  const handleTrackGenerated = async (track: SunoTrackResult, deckId: string) => {
     try {
       const deck = deckId === 'Deck A' ? mixer.deckA : mixer.deckB;
       const setDeckState = deckId === 'Deck A' ? setDeckAState : setDeckBState;
@@ -488,7 +560,6 @@ export default function DJPage() {
         key: track.key,
       };
 
-      // Load track from URL (since it's AI-generated and hosted externally)
       await deck.loadTrack(track.audioUrl, trackInfo);
       
       setDeckState(prev => ({ 
@@ -513,108 +584,96 @@ export default function DJPage() {
     }
   };
 
-  // Callback handlers for immediate state updates
-  const handleDeckAVolumeChange = (volume: number) => {
-    setDeckAState(prev => ({ ...prev, volume }));
-  };
-
-  const handleDeckAPitchChange = (pitchPercentage: number) => {
-    setDeckAState(prev => ({ ...prev, pitchPercentage }));
-  };
-
-  const handleDeckBVolumeChange = (volume: number) => {
-    setDeckBState(prev => ({ ...prev, volume }));
-  };
-
-  const handleDeckBPitchChange = (pitchPercentage: number) => {
-    setDeckBState(prev => ({ ...prev, pitchPercentage }));
-  };
-
-  const handleCrossfaderChange = (crossfaderPosition: number) => {
-    setMixerState(prev => ({ ...prev, crossfaderPosition }));
-  };
-
-  const handleMasterVolumeChange = (masterVolume: number) => {
-    setMixerState(prev => ({ ...prev, masterVolume }));
+  const handleMoodTrackGenerated = async (track: SunoTrackResult, deckId: string) => {
+    await handleTrackGenerated(track, deckId);
   };
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      {/* Header */}
-      <div className="bg-gray-900 border-b border-gray-700 p-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <h1 className="text-2xl font-bold" data-testid="text-dj-booth-title">
-            DJ Booth
-          </h1>
-          <div className="flex items-center space-x-4">
-            <MoodMenu onLoadToDeck={handleLoadSunoTrack} userId={1} />
-            <SunoGenerator onLoadToDeck={handleLoadSunoTrack} />
-            <Button
-              variant="outline"
-              className="border-gray-600 text-gray-300 hover:bg-gray-800"
-              data-testid="button-settings"
-            >
-              <Settings className="w-4 h-4 mr-2" />
-              Settings
-            </Button>
-          </div>
+    <div className="min-h-screen bg-black text-white p-4">
+      <div className="max-w-[1800px] mx-auto space-y-6">
+        {/* Header */}
+        <div className="text-center">
+          <h1 className="text-4xl font-bold mb-2">Professional DJ Studio</h1>
+          <p className="text-gray-400">Industry-standard dual-deck mixing with advanced professional controls</p>
         </div>
-      </div>
 
-      {/* Main DJ Interface */}
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Deck A */}
-          <div>
-            <DeckControl
+        {/* Professional DJ Layout */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          {/* Deck A - Left Side */}
+          <div className="space-y-4">
+            <ProfessionalDeck
               deck={mixer.deckA}
+              otherDeck={mixer.deckB}
               deckLabel="Deck A"
-              onLoadTrack={handleLoadTrackToDeckA}
+              onLoadTrack={handleLoadTrackA}
               currentTime={deckAState.currentTime}
               duration={deckAState.duration}
               isPlaying={deckAState.isPlaying}
               volume={deckAState.volume}
               pitchPercentage={deckAState.pitchPercentage}
-              onVolumeChange={handleDeckAVolumeChange}
-              onPitchChange={handleDeckAPitchChange}
+              onVolumeChange={(volume) => setDeckAState(prev => ({ ...prev, volume }))}
+              onPitchChange={(pitch) => setDeckAState(prev => ({ ...prev, pitchPercentage: pitch }))}
             />
           </div>
 
-          {/* Mixer & Track Browser */}
-          <div>
-            <MixerControl
+          {/* Center - Mixer and Global Controls */}
+          <div className="space-y-4">
+            <ProfessionalMixer
               mixer={mixer}
               crossfaderPosition={mixerState.crossfaderPosition}
               masterVolume={mixerState.masterVolume}
-              onCrossfaderChange={handleCrossfaderChange}
-              onMasterVolumeChange={handleMasterVolumeChange}
+              onCrossfaderChange={(position) => setMixerState(prev => ({ ...prev, crossfaderPosition: position }))}
+              onMasterVolumeChange={(volume) => setMixerState(prev => ({ ...prev, masterVolume: volume }))}
             />
             
             {/* Track Browser */}
-            <div className="mt-6">
-              <TrackBrowser onLoadTrackToDeck={handleLoadTrackFromLibrary} />
-            </div>
+            <TrackBrowser onLoadTrackToDeck={handleLoadTrackToDeck} />
           </div>
 
-          {/* Deck B */}
-          <div>
-            <DeckControl
+          {/* Deck B - Right Side */}
+          <div className="space-y-4">
+            <ProfessionalDeck
               deck={mixer.deckB}
+              otherDeck={mixer.deckA}
               deckLabel="Deck B"
-              onLoadTrack={handleLoadTrackToDeckB}
+              onLoadTrack={handleLoadTrackB}
               currentTime={deckBState.currentTime}
               duration={deckBState.duration}
               isPlaying={deckBState.isPlaying}
               volume={deckBState.volume}
               pitchPercentage={deckBState.pitchPercentage}
-              onVolumeChange={handleDeckBVolumeChange}
-              onPitchChange={handleDeckBPitchChange}
+              onVolumeChange={(volume) => setDeckBState(prev => ({ ...prev, volume }))}
+              onPitchChange={(pitch) => setDeckBState(prev => ({ ...prev, pitchPercentage: pitch }))}
             />
           </div>
+        </div>
+
+        {/* AI Generation and Mood Controls - Bottom Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
+          {/* Suno AI Generator */}
+          <div>
+            <SunoGenerator onTrackGenerated={handleTrackGenerated} />
+          </div>
+
+          {/* Mood Controls */}
+          <div>
+            <MoodMenu onTrackGenerated={handleMoodTrackGenerated} />
+          </div>
           
-          {/* Mood Journey & Therapeutic Features */}
-          <div className="space-y-6">
-            <MoodJourneyTracker userId={1} />
+          {/* Mood Journey Tracker */}
+          <div>
+            <MoodJourneyTracker />
+          </div>
+        </div>
+        
+        {/* Professional DJ Footer */}
+        <div className="text-center text-gray-500 text-sm border-t border-gray-800 pt-4">
+          <div className="flex items-center justify-center space-x-4">
+            <span>Professional DJ Console v2.0</span>
+            <span>•</span>
+            <span>Industry-Standard Controls</span>
+            <span>•</span>
+            <span>AI-Powered Music Generation</span>
           </div>
         </div>
       </div>
