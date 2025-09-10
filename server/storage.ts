@@ -4,6 +4,12 @@ import {
   soundSamples, 
   noteMappings, 
   recordings,
+  djTracks,
+  djSets,
+  cuePoints,
+  loops,
+  moodTransitions,
+  sessionEvents,
   type User, 
   type InsertUser, 
   type SoundLibrary, 
@@ -13,7 +19,19 @@ import {
   type NoteMapping,
   type InsertNoteMapping,
   type Recording,
-  type InsertRecording 
+  type InsertRecording,
+  type DjTrack,
+  type InsertDjTrack,
+  type DjSet,
+  type InsertDjSet,
+  type CuePoint,
+  type InsertCuePoint,
+  type Loop,
+  type InsertLoop,
+  type MoodTransition,
+  type InsertMoodTransition,
+  type SessionEvent,
+  type InsertSessionEvent
 } from "@shared/schema";
 import { SharedRecording } from "./routes";
 import { db } from "./db";
@@ -58,17 +76,70 @@ export interface IStorage {
   getRecordingByShareCode(shareCode: string): Promise<Recording | undefined>;
   updateRecording(id: number, updates: Partial<InsertRecording>): Promise<Recording | undefined>;
   deleteRecording(id: number): Promise<boolean>;
+  
+  // DJ Track methods
+  createDjTrack(trackData: InsertDjTrack): Promise<DjTrack>;
+  getDjTracks(userId: number): Promise<DjTrack[]>;
+  getDjTrack(id: string): Promise<DjTrack | undefined>;
+  updateDjTrack(id: string, updates: Partial<InsertDjTrack>): Promise<DjTrack | undefined>;
+  deleteDjTrack(id: string): Promise<boolean>;
+  
+  // DJ Set methods
+  createDjSet(setData: InsertDjSet): Promise<DjSet>;
+  getDjSets(userId: number): Promise<DjSet[]>;
+  getDjSet(id: string): Promise<DjSet | undefined>;
+  updateDjSet(id: string, updates: Partial<InsertDjSet>): Promise<DjSet | undefined>;
+  deleteDjSet(id: string): Promise<boolean>;
+  
+  // Cue Point methods
+  createCuePoint(cueData: InsertCuePoint): Promise<CuePoint>;
+  getCuePoints(trackId: string): Promise<CuePoint[]>;
+  getCuePoint(id: string): Promise<CuePoint | undefined>;
+  updateCuePoint(id: string, updates: Partial<InsertCuePoint>): Promise<CuePoint | undefined>;
+  deleteCuePoint(id: string): Promise<boolean>;
+  
+  // Loop methods
+  createLoop(loopData: InsertLoop): Promise<Loop>;
+  getLoops(trackId: string): Promise<Loop[]>;
+  getLoop(id: string): Promise<Loop | undefined>;
+  updateLoop(id: string, updates: Partial<InsertLoop>): Promise<Loop | undefined>;
+  deleteLoop(id: string): Promise<boolean>;
+  
+  // Mood Transition methods
+  createMoodTransition(transitionData: InsertMoodTransition): Promise<MoodTransition>;
+  getMoodTransitions(userId: number): Promise<MoodTransition[]>;
+  getMoodTransition(id: string): Promise<MoodTransition | undefined>;
+  updateMoodTransition(id: string, updates: Partial<InsertMoodTransition>): Promise<MoodTransition | undefined>;
+  deleteMoodTransition(id: string): Promise<boolean>;
+  
+  // Session Event methods
+  createSessionEvent(eventData: InsertSessionEvent): Promise<SessionEvent>;
+  getSessionEvents(sessionId: string): Promise<SessionEvent[]>;
+  getSessionEvent(id: string): Promise<SessionEvent | undefined>;
+  deleteSessionEvent(id: string): Promise<boolean>;
 }
 
 // In-memory storage implementation
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private sharedRecordings: Map<string, SharedRecording>;
+  private djTracks: Map<string, DjTrack>;
+  private djSets: Map<string, DjSet>;
+  private cuePoints: Map<string, CuePoint>;
+  private loops: Map<string, Loop>;
+  private moodTransitions: Map<string, MoodTransition>;
+  private sessionEvents: Map<string, SessionEvent>;
   currentId: number;
 
   constructor() {
     this.users = new Map();
     this.sharedRecordings = new Map();
+    this.djTracks = new Map();
+    this.djSets = new Map();
+    this.cuePoints = new Map();
+    this.loops = new Map();
+    this.moodTransitions = new Map();
+    this.sessionEvents = new Map();
     this.currentId = 1;
   }
 
@@ -187,6 +258,295 @@ export class MemStorage implements IStorage {
   
   async deleteRecording(id: number): Promise<boolean> {
     return false;
+  }
+  
+  // DJ Track methods
+  async createDjTrack(trackData: InsertDjTrack): Promise<DjTrack> {
+    const id = randomUUID();
+    const track: DjTrack = {
+      userId: trackData.userId,
+      title: trackData.title,
+      artist: trackData.artist,
+      url: trackData.url,
+      duration: trackData.duration,
+      bpm: trackData.bpm ?? null,
+      key: trackData.key ?? null,
+      waveformData: trackData.waveformData ?? null,
+      genre: trackData.genre ?? null,
+      id,
+      createdAt: new Date(),
+    };
+    this.djTracks.set(id, track);
+    return track;
+  }
+  
+  async getDjTracks(userId: number): Promise<DjTrack[]> {
+    return Array.from(this.djTracks.values()).filter(track => track.userId === userId);
+  }
+  
+  async getDjTrack(id: string): Promise<DjTrack | undefined> {
+    return this.djTracks.get(id);
+  }
+  
+  async updateDjTrack(id: string, updates: Partial<InsertDjTrack>): Promise<DjTrack | undefined> {
+    const existing = this.djTracks.get(id);
+    if (!existing) return undefined;
+    
+    // Only allow whitelisted fields to be updated
+    const updated: DjTrack = {
+      ...existing,
+      ...(updates.title !== undefined && { title: updates.title }),
+      ...(updates.artist !== undefined && { artist: updates.artist }),
+      ...(updates.url !== undefined && { url: updates.url }),
+      ...(updates.duration !== undefined && { duration: updates.duration }),
+      ...(updates.bpm !== undefined && { bpm: updates.bpm }),
+      ...(updates.key !== undefined && { key: updates.key }),
+      ...(updates.waveformData !== undefined && { waveformData: updates.waveformData }),
+      ...(updates.genre !== undefined && { genre: updates.genre }),
+    };
+    this.djTracks.set(id, updated);
+    return updated;
+  }
+  
+  async deleteDjTrack(id: string): Promise<boolean> {
+    if (!this.djTracks.has(id)) return false;
+    
+    // Cascading delete: remove associated cue points and loops
+    const cuePointsToDelete = Array.from(this.cuePoints.values())
+      .filter(cue => cue.trackId === id)
+      .map(cue => cue.id);
+    
+    const loopsToDelete = Array.from(this.loops.values())
+      .filter(loop => loop.trackId === id)
+      .map(loop => loop.id);
+    
+    // Delete associated entities
+    cuePointsToDelete.forEach(cueId => this.cuePoints.delete(cueId));
+    loopsToDelete.forEach(loopId => this.loops.delete(loopId));
+    
+    // Remove track from any sets
+    Array.from(this.djSets.entries()).forEach(([setId, set]) => {
+      if (set.trackIds.includes(id)) {
+        const updatedTrackIds = set.trackIds.filter((trackId: string) => trackId !== id);
+        this.djSets.set(setId, { ...set, trackIds: updatedTrackIds });
+      }
+    });
+    
+    this.djTracks.delete(id);
+    return true;
+  }
+  
+  // DJ Set methods
+  async createDjSet(setData: InsertDjSet): Promise<DjSet> {
+    const id = randomUUID();
+    const set: DjSet = {
+      userId: setData.userId,
+      name: setData.name,
+      trackIds: setData.trackIds ?? [],
+      description: setData.description ?? null,
+      duration: setData.duration ?? null,
+      id,
+      createdAt: new Date(),
+    };
+    this.djSets.set(id, set);
+    return set;
+  }
+  
+  async getDjSets(userId: number): Promise<DjSet[]> {
+    return Array.from(this.djSets.values()).filter(set => set.userId === userId);
+  }
+  
+  async getDjSet(id: string): Promise<DjSet | undefined> {
+    return this.djSets.get(id);
+  }
+  
+  async updateDjSet(id: string, updates: Partial<InsertDjSet>): Promise<DjSet | undefined> {
+    const existing = this.djSets.get(id);
+    if (!existing) return undefined;
+    
+    // Only allow whitelisted fields to be updated
+    const updated: DjSet = {
+      ...existing,
+      ...(updates.name !== undefined && { name: updates.name }),
+      ...(updates.trackIds !== undefined && { trackIds: updates.trackIds }),
+      ...(updates.description !== undefined && { description: updates.description }),
+      ...(updates.duration !== undefined && { duration: updates.duration }),
+    };
+    this.djSets.set(id, updated);
+    return updated;
+  }
+  
+  async deleteDjSet(id: string): Promise<boolean> {
+    if (!this.djSets.has(id)) return false;
+    
+    this.djSets.delete(id);
+    return true;
+  }
+  
+  // Cue Point methods
+  async createCuePoint(cueData: InsertCuePoint): Promise<CuePoint> {
+    const id = randomUUID();
+    const cuePoint: CuePoint = {
+      trackId: cueData.trackId,
+      name: cueData.name,
+      timePosition: cueData.timePosition,
+      color: cueData.color ?? "#ff0000",
+      id,
+      createdAt: new Date(),
+    };
+    this.cuePoints.set(id, cuePoint);
+    return cuePoint;
+  }
+  
+  async getCuePoints(trackId: string): Promise<CuePoint[]> {
+    return Array.from(this.cuePoints.values()).filter(cue => cue.trackId === trackId);
+  }
+  
+  async getCuePoint(id: string): Promise<CuePoint | undefined> {
+    return this.cuePoints.get(id);
+  }
+  
+  async updateCuePoint(id: string, updates: Partial<InsertCuePoint>): Promise<CuePoint | undefined> {
+    const existing = this.cuePoints.get(id);
+    if (!existing) return undefined;
+    
+    // Only allow whitelisted fields to be updated
+    const updated: CuePoint = {
+      ...existing,
+      ...(updates.name !== undefined && { name: updates.name }),
+      ...(updates.timePosition !== undefined && { timePosition: updates.timePosition }),
+      ...(updates.color !== undefined && { color: updates.color }),
+    };
+    this.cuePoints.set(id, updated);
+    return updated;
+  }
+  
+  async deleteCuePoint(id: string): Promise<boolean> {
+    if (!this.cuePoints.has(id)) return false;
+    
+    this.cuePoints.delete(id);
+    return true;
+  }
+  
+  // Loop methods
+  async createLoop(loopData: InsertLoop): Promise<Loop> {
+    const id = randomUUID();
+    const loop: Loop = {
+      trackId: loopData.trackId,
+      name: loopData.name,
+      startTime: loopData.startTime,
+      endTime: loopData.endTime,
+      isActive: loopData.isActive ?? false,
+      id,
+      createdAt: new Date(),
+    };
+    this.loops.set(id, loop);
+    return loop;
+  }
+  
+  async getLoops(trackId: string): Promise<Loop[]> {
+    return Array.from(this.loops.values()).filter(loop => loop.trackId === trackId);
+  }
+  
+  async getLoop(id: string): Promise<Loop | undefined> {
+    return this.loops.get(id);
+  }
+  
+  async updateLoop(id: string, updates: Partial<InsertLoop>): Promise<Loop | undefined> {
+    const existing = this.loops.get(id);
+    if (!existing) return undefined;
+    
+    // Only allow whitelisted fields to be updated
+    const updated: Loop = {
+      ...existing,
+      ...(updates.name !== undefined && { name: updates.name }),
+      ...(updates.startTime !== undefined && { startTime: updates.startTime }),
+      ...(updates.endTime !== undefined && { endTime: updates.endTime }),
+      ...(updates.isActive !== undefined && { isActive: updates.isActive }),
+    };
+    this.loops.set(id, updated);
+    return updated;
+  }
+  
+  async deleteLoop(id: string): Promise<boolean> {
+    if (!this.loops.has(id)) return false;
+    
+    this.loops.delete(id);
+    return true;
+  }
+  
+  // Mood Transition methods
+  async createMoodTransition(transitionData: InsertMoodTransition): Promise<MoodTransition> {
+    const id = randomUUID();
+    const transition: MoodTransition = {
+      userId: transitionData.userId,
+      currentMood: transitionData.currentMood,
+      desiredMood: transitionData.desiredMood,
+      transitionType: transitionData.transitionType,
+      generatedTrackId: transitionData.generatedTrackId ?? null,
+      id,
+      createdAt: new Date(),
+    };
+    this.moodTransitions.set(id, transition);
+    return transition;
+  }
+  
+  async getMoodTransitions(userId: number): Promise<MoodTransition[]> {
+    return Array.from(this.moodTransitions.values()).filter(transition => transition.userId === userId);
+  }
+  
+  async getMoodTransition(id: string): Promise<MoodTransition | undefined> {
+    return this.moodTransitions.get(id);
+  }
+  
+  async updateMoodTransition(id: string, updates: Partial<InsertMoodTransition>): Promise<MoodTransition | undefined> {
+    const existing = this.moodTransitions.get(id);
+    if (!existing) return undefined;
+    
+    // Only allow whitelisted fields to be updated
+    const updated: MoodTransition = {
+      ...existing,
+      ...(updates.currentMood !== undefined && { currentMood: updates.currentMood }),
+      ...(updates.desiredMood !== undefined && { desiredMood: updates.desiredMood }),
+      ...(updates.transitionType !== undefined && { transitionType: updates.transitionType }),
+      ...(updates.generatedTrackId !== undefined && { generatedTrackId: updates.generatedTrackId }),
+    };
+    this.moodTransitions.set(id, updated);
+    return updated;
+  }
+  
+  async deleteMoodTransition(id: string): Promise<boolean> {
+    if (!this.moodTransitions.has(id)) return false;
+    
+    this.moodTransitions.delete(id);
+    return true;
+  }
+  
+  // Session Event methods
+  async createSessionEvent(eventData: InsertSessionEvent): Promise<SessionEvent> {
+    const id = randomUUID();
+    const event: SessionEvent = {
+      ...eventData,
+      id,
+      timestamp: new Date(),
+    };
+    this.sessionEvents.set(id, event);
+    return event;
+  }
+  
+  async getSessionEvents(sessionId: string): Promise<SessionEvent[]> {
+    return Array.from(this.sessionEvents.values()).filter(event => event.sessionId === sessionId);
+  }
+  
+  async getSessionEvent(id: string): Promise<SessionEvent | undefined> {
+    return this.sessionEvents.get(id);
+  }
+  
+  async deleteSessionEvent(id: string): Promise<boolean> {
+    if (!this.sessionEvents.has(id)) return false;
+    
+    this.sessionEvents.delete(id);
+    return true;
   }
 }
 
@@ -527,6 +887,324 @@ export class DatabaseStorage implements IStorage {
       return true;
     } catch (error) {
       console.error("Error deleting recording:", error);
+      return false;
+    }
+  }
+  
+  // DJ Track methods
+  async createDjTrack(trackData: InsertDjTrack): Promise<DjTrack> {
+    const id = randomUUID();
+    
+    const [track] = await db
+      .insert(djTracks)
+      .values({
+        ...trackData,
+        id
+      })
+      .returning();
+      
+    return track;
+  }
+  
+  async getDjTracks(userId: number): Promise<DjTrack[]> {
+    return db
+      .select()
+      .from(djTracks)
+      .where(eq(djTracks.userId, userId))
+      .orderBy(desc(djTracks.createdAt));
+  }
+  
+  async getDjTrack(id: string): Promise<DjTrack | undefined> {
+    const [track] = await db
+      .select()
+      .from(djTracks)
+      .where(eq(djTracks.id, id));
+      
+    return track;
+  }
+  
+  async updateDjTrack(id: string, updates: Partial<InsertDjTrack>): Promise<DjTrack | undefined> {
+    const [updated] = await db
+      .update(djTracks)
+      .set(updates)
+      .where(eq(djTracks.id, id))
+      .returning();
+      
+    return updated;
+  }
+  
+  async deleteDjTrack(id: string): Promise<boolean> {
+    // Delete related data first
+    await db.delete(cuePoints).where(eq(cuePoints.trackId, id));
+    await db.delete(loops).where(eq(loops.trackId, id));
+    
+    try {
+      await db
+        .delete(djTracks)
+        .where(eq(djTracks.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting DJ track:", error);
+      return false;
+    }
+  }
+  
+  // DJ Set methods
+  async createDjSet(setData: InsertDjSet): Promise<DjSet> {
+    const id = randomUUID();
+    
+    const [djSet] = await db
+      .insert(djSets)
+      .values({
+        ...setData,
+        id
+      })
+      .returning();
+      
+    return djSet;
+  }
+  
+  async getDjSets(userId: number): Promise<DjSet[]> {
+    return db
+      .select()
+      .from(djSets)
+      .where(eq(djSets.userId, userId))
+      .orderBy(desc(djSets.createdAt));
+  }
+  
+  async getDjSet(id: string): Promise<DjSet | undefined> {
+    const [djSet] = await db
+      .select()
+      .from(djSets)
+      .where(eq(djSets.id, id));
+      
+    return djSet;
+  }
+  
+  async updateDjSet(id: string, updates: Partial<InsertDjSet>): Promise<DjSet | undefined> {
+    const [updated] = await db
+      .update(djSets)
+      .set(updates)
+      .where(eq(djSets.id, id))
+      .returning();
+      
+    return updated;
+  }
+  
+  async deleteDjSet(id: string): Promise<boolean> {
+    try {
+      await db
+        .delete(djSets)
+        .where(eq(djSets.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting DJ set:", error);
+      return false;
+    }
+  }
+  
+  // Cue Point methods
+  async createCuePoint(cueData: InsertCuePoint): Promise<CuePoint> {
+    const id = randomUUID();
+    
+    const [cuePoint] = await db
+      .insert(cuePoints)
+      .values({
+        ...cueData,
+        id
+      })
+      .returning();
+      
+    return cuePoint;
+  }
+  
+  async getCuePoints(trackId: string): Promise<CuePoint[]> {
+    return db
+      .select()
+      .from(cuePoints)
+      .where(eq(cuePoints.trackId, trackId))
+      .orderBy(desc(cuePoints.timePosition));
+  }
+  
+  async getCuePoint(id: string): Promise<CuePoint | undefined> {
+    const [cuePoint] = await db
+      .select()
+      .from(cuePoints)
+      .where(eq(cuePoints.id, id));
+      
+    return cuePoint;
+  }
+  
+  async updateCuePoint(id: string, updates: Partial<InsertCuePoint>): Promise<CuePoint | undefined> {
+    const [updated] = await db
+      .update(cuePoints)
+      .set(updates)
+      .where(eq(cuePoints.id, id))
+      .returning();
+      
+    return updated;
+  }
+  
+  async deleteCuePoint(id: string): Promise<boolean> {
+    try {
+      await db
+        .delete(cuePoints)
+        .where(eq(cuePoints.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting cue point:", error);
+      return false;
+    }
+  }
+  
+  // Loop methods
+  async createLoop(loopData: InsertLoop): Promise<Loop> {
+    const id = randomUUID();
+    
+    const [loop] = await db
+      .insert(loops)
+      .values({
+        ...loopData,
+        id
+      })
+      .returning();
+      
+    return loop;
+  }
+  
+  async getLoops(trackId: string): Promise<Loop[]> {
+    return db
+      .select()
+      .from(loops)
+      .where(eq(loops.trackId, trackId))
+      .orderBy(desc(loops.startTime));
+  }
+  
+  async getLoop(id: string): Promise<Loop | undefined> {
+    const [loop] = await db
+      .select()
+      .from(loops)
+      .where(eq(loops.id, id));
+      
+    return loop;
+  }
+  
+  async updateLoop(id: string, updates: Partial<InsertLoop>): Promise<Loop | undefined> {
+    const [updated] = await db
+      .update(loops)
+      .set(updates)
+      .where(eq(loops.id, id))
+      .returning();
+      
+    return updated;
+  }
+  
+  async deleteLoop(id: string): Promise<boolean> {
+    try {
+      await db
+        .delete(loops)
+        .where(eq(loops.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting loop:", error);
+      return false;
+    }
+  }
+  
+  // Mood Transition methods
+  async createMoodTransition(transitionData: InsertMoodTransition): Promise<MoodTransition> {
+    const id = randomUUID();
+    
+    const [transition] = await db
+      .insert(moodTransitions)
+      .values({
+        ...transitionData,
+        id
+      })
+      .returning();
+      
+    return transition;
+  }
+  
+  async getMoodTransitions(userId: number): Promise<MoodTransition[]> {
+    return db
+      .select()
+      .from(moodTransitions)
+      .where(eq(moodTransitions.userId, userId))
+      .orderBy(desc(moodTransitions.createdAt));
+  }
+  
+  async getMoodTransition(id: string): Promise<MoodTransition | undefined> {
+    const [transition] = await db
+      .select()
+      .from(moodTransitions)
+      .where(eq(moodTransitions.id, id));
+      
+    return transition;
+  }
+  
+  async updateMoodTransition(id: string, updates: Partial<InsertMoodTransition>): Promise<MoodTransition | undefined> {
+    const [updated] = await db
+      .update(moodTransitions)
+      .set(updates)
+      .where(eq(moodTransitions.id, id))
+      .returning();
+      
+    return updated;
+  }
+  
+  async deleteMoodTransition(id: string): Promise<boolean> {
+    try {
+      await db
+        .delete(moodTransitions)
+        .where(eq(moodTransitions.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting mood transition:", error);
+      return false;
+    }
+  }
+  
+  // Session Event methods
+  async createSessionEvent(eventData: InsertSessionEvent): Promise<SessionEvent> {
+    const id = randomUUID();
+    
+    const [event] = await db
+      .insert(sessionEvents)
+      .values({
+        ...eventData,
+        id
+      })
+      .returning();
+      
+    return event;
+  }
+  
+  async getSessionEvents(sessionId: string): Promise<SessionEvent[]> {
+    return db
+      .select()
+      .from(sessionEvents)
+      .where(eq(sessionEvents.sessionId, sessionId))
+      .orderBy(desc(sessionEvents.timestamp));
+  }
+  
+  async getSessionEvent(id: string): Promise<SessionEvent | undefined> {
+    const [event] = await db
+      .select()
+      .from(sessionEvents)
+      .where(eq(sessionEvents.id, id));
+      
+    return event;
+  }
+  
+  async deleteSessionEvent(id: string): Promise<boolean> {
+    try {
+      await db
+        .delete(sessionEvents)
+        .where(eq(sessionEvents.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting session event:", error);
       return false;
     }
   }
