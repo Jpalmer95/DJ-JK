@@ -37,6 +37,15 @@ import {
   MUSIC_STYLES,
   SUNO_MODELS
 } from "./lib/sunoServer";
+import {
+  MoodTransitionGenerator,
+  MoodTransitionRequestSchema,
+  validateMoodTransition,
+  getMoodCharacteristics,
+  getAllMoodNames,
+  MOOD_DATABASE,
+  type MoodTransitionRequest
+} from "./lib/moodTransitionGenerator";
 
 // Schema for the shared recording
 const SharedRecordingSchema = z.object({
@@ -901,7 +910,143 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ===== MOOD TRANSITION ROUTES =====
   
-  // Create a new mood transition
+  // Generate progressive mood transition music
+  app.post('/api/mood-transitions/generate', errorHandler(async (req, res) => {
+    const userId = Number(req.body.userId);
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+    
+    // Validate the mood transition request
+    const result = MoodTransitionRequestSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ 
+        error: 'Invalid mood transition request', 
+        details: result.error.errors 
+      });
+    }
+    
+    const request = result.data;
+    
+    // Validate mood transition is possible
+    if (!validateMoodTransition(request.fromMood, request.toMood)) {
+      return res.status(400).json({ 
+        error: 'Invalid mood transition',
+        details: `Cannot transition from ${request.fromMood} to ${request.toMood}`
+      });
+    }
+    
+    try {
+      console.log(`Generating progressive mood transition: ${request.fromMood} → ${request.toMood}`);
+      
+      // Generate progressive transition tracks
+      const tracks = await MoodTransitionGenerator.generateProgressiveTransition(request);
+      
+      // Save generated tracks to database
+      const savedTracks = [];
+      for (const track of tracks) {
+        try {
+          const trackData = {
+            userId,
+            title: track.title,
+            artist: track.artist,
+            url: track.audioUrl,
+            duration: track.duration.toString(),
+            bpm: track.bpm || null,
+            key: track.key || null,
+            genre: track.style || 'Mood Transition',
+            waveformData: null,
+          };
+          
+          const savedTrack = await storage.createDjTrack(trackData);
+          savedTracks.push(savedTrack);
+        } catch (error) {
+          console.error('Error saving mood transition track:', error);
+        }
+      }
+      
+      // Save mood transition record
+      try {
+        const transitionRecord = {
+          userId,
+          currentMood: request.fromMood,
+          desiredMood: request.toMood,
+          transitionType: request.transitionProfile.transitionStyle,
+          generatedTrackId: savedTracks[0]?.id || null
+        };
+        
+        await storage.createMoodTransition(transitionRecord);
+      } catch (error) {
+        console.warn('Failed to save mood transition record:', error);
+      }
+      
+      res.status(201).json({
+        success: true,
+        tracks: savedTracks,
+        originalTracks: tracks,
+        transition: {
+          from: request.fromMood,
+          to: request.toMood,
+          sections: request.transitionProfile.sections,
+          duration: request.transitionProfile.duration
+        }
+      });
+      
+    } catch (error) {
+      console.error('Error generating mood transition:', error);
+      
+      if (error instanceof Error && error.message.includes('API key')) {
+        return res.status(503).json({ 
+          error: 'Music generation service not configured', 
+          details: 'Please configure SUNO_API_KEY on server'
+        });
+      }
+      
+      return res.status(500).json({ 
+        error: 'Mood transition generation failed', 
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }));
+  
+  // Get mood database and characteristics
+  app.get('/api/mood-transitions/moods', errorHandler(async (req, res) => {
+    res.json({
+      moods: getAllMoodNames(),
+      characteristics: MOOD_DATABASE
+    });
+  }));
+  
+  // Get characteristics for a specific mood
+  app.get('/api/mood-transitions/moods/:mood', errorHandler(async (req, res) => {
+    const { mood } = req.params;
+    const characteristics = getMoodCharacteristics(mood);
+    
+    if (!characteristics) {
+      return res.status(404).json({ error: 'Mood not found' });
+    }
+    
+    res.json({
+      mood,
+      characteristics
+    });
+  }));
+  
+  // Create a new mood transition record
+  app.post('/api/mood-transitions', errorHandler(async (req, res) => {
+    const data = req.body;
+    
+    const result = insertMoodTransitionSchema.safeParse(data);
+    if (!result.success) {
+      return res.status(400).json({ error: 'Invalid mood transition data', details: result.error });
+    }
+    
+    const transition = await storage.createMoodTransition(data);
+    res.status(201).json(transition);
+  }));
+
+  // Legacy endpoint for backward compatibility
   app.post('/api/moods', errorHandler(async (req, res) => {
     const data = req.body;
     
@@ -915,6 +1060,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }));
   
   // Get all mood transitions for a user
+  app.get('/api/mood-transitions', errorHandler(async (req, res) => {
+    const userId = Number(req.query.userId);
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+    
+    const transitions = await storage.getMoodTransitions(userId);
+    res.json(transitions);
+  }));
+
+  // Legacy endpoint for backward compatibility
   app.get('/api/moods', errorHandler(async (req, res) => {
     const userId = Number(req.query.userId);
     

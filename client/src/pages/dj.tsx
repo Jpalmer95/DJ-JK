@@ -11,6 +11,8 @@ import { apiRequest } from '@/lib/queryClient';
 import { Play, Pause, Square, Upload, Volume2, RotateCcw, RotateCw, Music, Settings } from 'lucide-react';
 import WaveformVisualizer from '@/components/WaveformVisualizer';
 import SunoGenerator from '@/components/SunoGenerator';
+import MoodMenu from '@/components/MoodMenu';
+import MoodJourneyTracker from '@/components/MoodJourneyTracker';
 import type { SunoTrackResult } from '@/lib/sunoApi';
 
 interface DeckControlProps {
@@ -545,6 +547,7 @@ export default function DJPage() {
             DJ Booth
           </h1>
           <div className="flex items-center space-x-4">
+            <MoodMenu onLoadToDeck={handleLoadSunoTrack} userId={1} />
             <SunoGenerator onLoadToDeck={handleLoadSunoTrack} />
             <Button
               variant="outline"
@@ -560,7 +563,7 @@ export default function DJPage() {
 
       {/* Main DJ Interface */}
       <div className="max-w-7xl mx-auto p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Deck A */}
           <div>
             <DeckControl
@@ -577,7 +580,7 @@ export default function DJPage() {
             />
           </div>
 
-          {/* Mixer */}
+          {/* Mixer & Track Browser */}
           <div>
             <MixerControl
               mixer={mixer}
@@ -607,6 +610,11 @@ export default function DJPage() {
               onVolumeChange={handleDeckBVolumeChange}
               onPitchChange={handleDeckBPitchChange}
             />
+          </div>
+          
+          {/* Mood Journey & Therapeutic Features */}
+          <div className="space-y-6">
+            <MoodJourneyTracker userId={1} />
           </div>
         </div>
       </div>
