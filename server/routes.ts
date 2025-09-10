@@ -25,6 +25,18 @@ import {
   updateLoopSchema,
   updateMoodTransitionSchema
 } from "@shared/schema";
+import {
+  generateMusic,
+  checkGenerationStatus,
+  generateMusicComplete,
+  validateSunoConfig,
+  getGenerationCredits,
+  SunoGenerationRequestSchema,
+  type SunoGenerationResponse,
+  type SunoTrackResult,
+  MUSIC_STYLES,
+  SUNO_MODELS
+} from "./lib/sunoServer";
 
 // Schema for the shared recording
 const SharedRecordingSchema = z.object({
@@ -542,6 +554,124 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     res.status(204).end();
+  }));
+
+  // ===== SUNO AI MUSIC GENERATION ROUTES =====
+  
+  // Check Suno API configuration
+  app.get('/api/suno/config', errorHandler(async (req, res) => {
+    const config = validateSunoConfig();
+    res.json(config);
+  }));
+  
+  // Get available music styles and models
+  app.get('/api/suno/metadata', errorHandler(async (req, res) => {
+    res.json({
+      styles: MUSIC_STYLES,
+      models: SUNO_MODELS,
+    });
+  }));
+  
+  // Generate music via Suno AI (Server-side proxy)
+  app.post('/api/suno/generate', errorHandler(async (req, res) => {
+    const userId = Number(req.body.userId);
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+    
+    // Validate the Suno request
+    const result = SunoGenerationRequestSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ 
+        error: 'Invalid generation request', 
+        details: result.error.errors 
+      });
+    }
+    
+    try {
+      // Generate music using server-side API
+      const tracks = await generateMusicComplete(result.data, (progress) => {
+        // TODO: In a real implementation, we could use WebSockets to send progress updates
+        console.log('Generation progress:', progress);
+      });
+      
+      // Save generated tracks to database
+      const savedTracks = [];
+      for (const track of tracks) {
+        try {
+          // Prepare track data with proper types for database
+          const trackData = {
+            userId,
+            title: track.title,
+            artist: track.artist,
+            url: track.audioUrl,
+            duration: track.duration.toString(), // Database expects decimal as string format
+            bpm: track.bpm || null,
+            key: track.key || null,
+            genre: track.style || null,
+            waveformData: null, // Will be generated when loaded
+          };
+          
+          const savedTrack = await storage.createDjTrack(trackData);
+          savedTracks.push(savedTrack);
+        } catch (error) {
+          console.error('Error saving track to database:', error);
+          // Continue with other tracks even if one fails
+        }
+      }
+      
+      res.status(201).json({
+        success: true,
+        tracks: savedTracks,
+        originalTracks: tracks, // Include original Suno response for immediate use
+      });
+    } catch (error) {
+      console.error('Error generating music:', error);
+      
+      if (error instanceof Error && error.message.includes('API key')) {
+        return res.status(503).json({ 
+          error: 'Music generation service not configured', 
+          details: 'Please configure SUNO_API_KEY on server'
+        });
+      }
+      
+      return res.status(500).json({ 
+        error: 'Music generation failed', 
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }));
+  
+  // Check generation status (for polling-based implementations)
+  app.get('/api/suno/status/:id', errorHandler(async (req, res) => {
+    const { id } = req.params;
+    
+    if (!id) {
+      return res.status(400).json({ error: 'Generation ID is required' });
+    }
+    
+    try {
+      const status = await checkGenerationStatus(id);
+      res.json(status);
+    } catch (error) {
+      console.error('Error checking generation status:', error);
+      return res.status(500).json({ 
+        error: 'Failed to check generation status', 
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }));
+  
+  // Get generation credits (if supported by API)
+  app.get('/api/suno/credits', errorHandler(async (req, res) => {
+    try {
+      const credits = await getGenerationCredits();
+      res.json(credits || { credits: null, maxCredits: null });
+    } catch (error) {
+      console.error('Error fetching generation credits:', error);
+      res.json({ credits: null, maxCredits: null });
+    }
   }));
 
   // ===== DJ SET ROUTES =====

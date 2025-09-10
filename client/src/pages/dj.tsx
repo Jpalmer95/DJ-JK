@@ -10,6 +10,8 @@ import { DjTrack } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
 import { Play, Pause, Square, Upload, Volume2, RotateCcw, RotateCw, Music, Settings } from 'lucide-react';
 import WaveformVisualizer from '@/components/WaveformVisualizer';
+import SunoGenerator from '@/components/SunoGenerator';
+import type { SunoTrackResult } from '@/lib/sunoApi';
 
 interface DeckControlProps {
   deck: DJDeck;
@@ -469,6 +471,46 @@ export default function DJPage() {
     });
   };
 
+  // Load AI-generated track from Suno
+  const handleLoadSunoTrack = async (track: SunoTrackResult, deckId: string) => {
+    try {
+      const deck = deckId === 'Deck A' ? mixer.deckA : mixer.deckB;
+      const setDeckState = deckId === 'Deck A' ? setDeckAState : setDeckBState;
+
+      const trackInfo: DJTrackInfo = {
+        title: track.title,
+        artist: track.artist,
+        duration: track.duration,
+        url: track.audioUrl,
+        bpm: track.bpm,
+        key: track.key,
+      };
+
+      // Load track from URL (since it's AI-generated and hosted externally)
+      await deck.loadTrack(track.audioUrl, trackInfo);
+      
+      setDeckState(prev => ({ 
+        ...prev, 
+        duration: deck.duration,
+        currentTime: 0,
+        volume: deck.volume,
+        pitchPercentage: deck.getPitchPercentage(),
+      }));
+      
+      toast({
+        title: `AI Track loaded to ${deckId}`,
+        description: `"${track.title}" by ${track.artist} is ready to play`,
+      });
+    } catch (error) {
+      console.error('Error loading Suno track:', error);
+      toast({
+        title: "Failed to load AI track",
+        description: "Could not load the generated track",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Callback handlers for immediate state updates
   const handleDeckAVolumeChange = (volume: number) => {
     setDeckAState(prev => ({ ...prev, volume }));
@@ -503,6 +545,7 @@ export default function DJPage() {
             DJ Booth
           </h1>
           <div className="flex items-center space-x-4">
+            <SunoGenerator onLoadToDeck={handleLoadSunoTrack} />
             <Button
               variant="outline"
               className="border-gray-600 text-gray-300 hover:bg-gray-800"
