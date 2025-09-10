@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { HelpCircle, Settings, RefreshCw, MicIcon, StopCircle, Play, Share2, Music, FileAudio } from "lucide-react";
+import { HelpCircle, Settings, RefreshCw, MicIcon, StopCircle, Play, Share2, Music, FileAudio, Disc3 } from "lucide-react";
+import { Link } from "wouter";
 import PianoGrid from "@/components/PianoGrid";
 import HelpModal from "@/components/modals/HelpModal";
 import SettingsModal from "@/components/modals/SettingsModal";
@@ -219,11 +220,22 @@ export default function Home() {
           <div className="flex justify-between items-center">
             <h1 className="text-2xl sm:text-3xl font-bold font-poppins text-blue-600">Music Studio</h1>
             <div className="flex space-x-3">
+              <Link href="/dj">
+                <Button 
+                  variant="outline" 
+                  className="rounded-full bg-white shadow-sm hover:bg-gray-50 px-3"
+                  data-testid="button-dj-booth"
+                >
+                  <Disc3 className="h-5 w-5 text-gray-600 mr-2" />
+                  DJ Booth
+                </Button>
+              </Link>
               <Button 
                 variant="outline" 
                 size="icon" 
                 className="rounded-full bg-white shadow-sm hover:bg-gray-50"
                 onClick={() => setIsHelpOpen(true)}
+                data-testid="button-help"
               >
                 <HelpCircle className="h-5 w-5 text-gray-600" />
               </Button>
@@ -232,6 +244,7 @@ export default function Home() {
                 size="icon" 
                 className="rounded-full bg-white shadow-sm hover:bg-gray-50"
                 onClick={() => setIsSettingsOpen(true)}
+                data-testid="button-settings"
               >
                 <Settings className="h-5 w-5 text-gray-600" />
               </Button>
