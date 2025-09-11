@@ -16,6 +16,10 @@ import TransportControls from '@/components/dj/TransportControls';
 import EqualizerPanel from '@/components/dj/EqualizerPanel';
 import EffectsRack from '@/components/dj/EffectsRack';
 import EffectPresets from '@/components/dj/EffectPresets';
+import SpectrumAnalyzer from '@/components/dj/SpectrumAnalyzer';
+import BeatReactiveVisuals from '@/components/dj/BeatReactiveVisuals';
+import VisualizationControls from '@/components/dj/VisualizationControls';
+import FullScreenVisualizer from '@/components/dj/FullScreenVisualizer';
 import SunoGenerator from '@/components/SunoGenerator';
 import MoodMenu from '@/components/MoodMenu';
 import MoodJourneyTracker from '@/components/MoodJourneyTracker';
@@ -122,11 +126,16 @@ function ProfessionalDeck({
           {/* Professional Waveform Display */}
           <div className="h-20 bg-gray-800 rounded-lg flex items-center justify-center">
             {deck.trackInfo?.url ? (
-              <WaveformVisualizer 
-                audioUrl={deck.trackInfo.url}
+              <WaveformVisualizer
                 deck={deck}
-                color="#10b981" 
+                color="#10b981"
                 height={80}
+                animated={true}
+                showControls={false}
+                enableBeatDetection={true}
+                frequencyColoring={true}
+                stereoMode={false}
+                theme="dark"
                 playing={isPlaying}
                 currentTime={currentTime}
                 duration={duration}
@@ -444,6 +453,36 @@ export default function ProfessionalDJPage() {
     crossfaderPosition: 0.5,
     masterVolume: 1,
   });
+  
+  // Visual effects state
+  const [showFullScreenVisualizer, setShowFullScreenVisualizer] = useState(false);
+  const [showVisualizationControls, setShowVisualizationControls] = useState(false);
+  const [visualizationSettings, setVisualizationSettings] = useState({
+    theme: {
+      name: 'Dark Club',
+      primaryColor: '#00d4ff',
+      secondaryColor: '#ff0080',
+      accentColor: '#ffff00',
+      backgroundColor: '#000000',
+      colorMode: 'gradient' as const,
+      saturation: 1.0,
+      brightness: 1.0,
+      contrast: 1.0
+    },
+    effects: {
+      particles: { enabled: true, count: 100, size: 3, speed: 2, life: 180, shape: 'circle' as const, blendMode: 'screen' as const, trail: true, trailLength: 15 },
+      waveform: { enabled: true, style: 'line' as const, thickness: 2, smoothing: 0.3, colorMode: 'gradient' as const, beatPulse: true },
+      spectrum: { enabled: true, bars: 128, logScale: true, peakHold: true, smoothing: 0.3, colorMode: 'gradient' as const, beatReactive: true },
+      visual3d: { enabled: false, type: 'tunnel' as const, intensity: 0.8, speed: 1.0, rotation: true, morphing: false }
+    },
+    performance: { quality: 'high' as const, targetFps: 60, enableWebGL: true, enablePostProcessing: true, enableMotionBlur: false, enableBloom: true, antiAliasing: true },
+    reactivity: { beatSensitivity: 0.8, frequencySensitivity: 0.7, energyThreshold: 0.3, beatPrediction: true, autoAdjust: true, transientDetection: true, keySync: false },
+    display: { showBeatIndicator: true, showBpmCounter: true, showFrequencyBands: true, showEnergyMeter: false, showPerformanceStats: false, fullScreenMode: false, multiMonitor: false }
+  });
+  
+  const handleVisualizationSettingsChange = (category: string, settings: any) => {
+    setVisualizationSettings(prev => ({...prev, [category]: settings}));
+  };
 
   const { toast } = useToast();
 
@@ -721,6 +760,72 @@ export default function ProfessionalDJPage() {
             </div>
           </div>
         </div>
+
+        {/* Advanced Visual Effects System */}
+        <div className="space-y-6">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-white mb-2">Professional Visual Effects</h2>
+            <p className="text-gray-400">Real-time spectrum analysis and beat-reactive visualizations</p>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {/* Spectrum Analyzer */}
+            <SpectrumAnalyzer
+              deck={mixer.deckA.isPlaying ? mixer.deckA : mixer.deckB}
+              width={600}
+              height={300}
+              showControls={true}
+              enableBeatDetection={true}
+              theme="dark"
+            />
+            
+            {/* Beat-Reactive Visuals */}
+            <BeatReactiveVisuals
+              deck={mixer.deckA.isPlaying ? mixer.deckA : mixer.deckB}
+              otherDeck={mixer.deckA.isPlaying ? mixer.deckB : mixer.deckA}
+              width={600}
+              height={300}
+              autoStart={true}
+            />
+          </div>
+
+          {/* Visualization Controls */}
+          {showVisualizationControls && (
+            <VisualizationControls
+              onSettingsChange={handleVisualizationSettingsChange}
+              currentSettings={visualizationSettings}
+            />
+          )}
+
+          {/* Visualization Control Buttons */}
+          <div className="text-center space-x-4">
+            <Button
+              onClick={() => setShowVisualizationControls(!showVisualizationControls)}
+              className="bg-purple-600 hover:bg-purple-700"
+              data-testid="button-visualization-controls"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              {showVisualizationControls ? 'Hide' : 'Show'} Visual Controls
+            </Button>
+            <Button
+              onClick={() => setShowFullScreenVisualizer(true)}
+              className="bg-blue-600 hover:bg-blue-700"
+              data-testid="button-fullscreen-visualizer"
+            >
+              <Music className="w-4 h-4 mr-2" />
+              Launch Full-Screen Visuals
+            </Button>
+          </div>
+        </div>
+
+        {/* Full-Screen Visualizer */}
+        <FullScreenVisualizer
+          deck={mixer.deckA.isPlaying ? mixer.deckA : mixer.deckB}
+          otherDeck={mixer.deckA.isPlaying ? mixer.deckB : mixer.deckA}
+          isVisible={showFullScreenVisualizer}
+          onClose={() => setShowFullScreenVisualizer(false)}
+          enableRecording={true}
+        />
 
         {/* AI Generation and Mood Controls - Bottom Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">

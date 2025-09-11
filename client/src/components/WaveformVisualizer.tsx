@@ -1,22 +1,60 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
 import { DJDeck } from '@/lib/djAudio';
+import { BeatDetector, BeatInfo, SpectralFeatures, TransientInfo } from '@/lib/beatDetection';
+import { ZoomIn, ZoomOut, Maximize2, Settings, Palette, Activity } from 'lucide-react';
 
 interface WaveformVisualizerProps {
   deck: DJDeck;
   color?: string;
   height?: number;
   animated?: boolean;
+  showControls?: boolean;
+  enableBeatDetection?: boolean;
+  frequencyColoring?: boolean;
+  stereoMode?: boolean;
+  zoomLevel?: number;
+  onZoomChange?: (zoom: number) => void;
+  theme?: 'dark' | 'neon' | 'retro' | 'minimal';
+}
+
+interface WaveformConfig {
+  frequencyColoring: boolean;
+  stereoMode: boolean;
+  showBeatGrid: boolean;
+  showCuePoints: boolean;
+  showLoopRegions: boolean;
+  showTransients: boolean;
+  showPhaseCorrelation: boolean;
+  waveformStyle: 'filled' | 'line' | 'mirror' | 'bars';
+  colorMode: 'solid' | 'gradient' | 'frequency' | 'energy';
+  zoomLevel: number;
+  sensitivity: number;
 }
 
 export default function WaveformVisualizer({
   deck,
   color = '#3b82f6',
   height = 60,
-  animated = true
+  animated = true,
+  showControls = false,
+  enableBeatDetection = false,
+  frequencyColoring = false,
+  stereoMode = false,
+  zoomLevel = 1,
+  onZoomChange,
+  theme = 'dark'
 }: WaveformVisualizerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const stereoCanvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
+  const beatDetectorRef = useRef<BeatDetector | null>(null);
+  
   const [waveformData, setWaveformData] = useState<number[] | null>(null);
+  const [stereoWaveformData, setStereoWaveformData] = useState<{left: number[], right: number[]} | null>(null);
+  const [frequencyWaveformData, setFrequencyWaveformData] = useState<number[][] | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -24,6 +62,116 @@ export default function WaveformVisualizer({
   const [cuePoints, setCuePoints] = useState<any[]>([]);
   const [loops, setLoops] = useState<any[]>([]);
   const [currentBeat, setCurrentBeat] = useState<number>(0);
+  const [showSettings, setShowSettings] = useState<boolean>(false);
+  
+  // Enhanced audio analysis state
+  const [beatInfo, setBeatInfo] = useState<BeatInfo | null>(null);
+  const [spectralFeatures, setSpectralFeatures] = useState<SpectralFeatures | null>(null);
+  const [transientInfo, setTransientInfo] = useState<TransientInfo | null>(null);
+  const [transientMarkers, setTransientMarkers] = useState<{time: number, type: string, strength: number}[]>([]);
+  
+  // Configuration state
+  const [config, setConfig] = useState<WaveformConfig>({
+    frequencyColoring: frequencyColoring,
+    stereoMode: stereoMode,
+    showBeatGrid: true,
+    showCuePoints: true,
+    showLoopRegions: true,
+    showTransients: false,
+    showPhaseCorrelation: false,
+    waveformStyle: 'filled',
+    colorMode: 'frequency',
+    zoomLevel: zoomLevel,
+    sensitivity: 1.0
+  });
+
+  // Themes configuration
+  const themes = {
+    dark: {
+      background: '#000000',
+      waveform: '#3b82f6',
+      beat: '#ff0040',
+      cue: '#ffff00',
+      loop: '#00ff88',
+      frequencies: {
+        bass: '#ff0040',
+        mid: '#00ff88', 
+        high: '#00d4ff'
+      }
+    },
+    neon: {
+      background: '#0a0a0a',
+      waveform: '#ff00ff',
+      beat: '#00ffff',
+      cue: '#ffff00',
+      loop: '#ff6ec7',
+      frequencies: {
+        bass: '#ff00ff',
+        mid: '#00ffff',
+        high: '#ffff00'
+      }
+    },
+    retro: {
+      background: '#0f0f23',
+      waveform: '#ff6ec7',
+      beat: '#7928ca',
+      cue: '#ffd700',
+      loop: '#9333ea',
+      frequencies: {
+        bass: '#7928ca',
+        mid: '#e879f9',
+        high: '#ff6ec7'
+      }
+    },
+    minimal: {
+      background: '#111827',
+      waveform: '#3b82f6',
+      beat: '#ef4444',
+      cue: '#f59e0b',
+      loop: '#10b981',
+      frequencies: {
+        bass: '#ef4444',
+        mid: '#f59e0b',
+        high: '#3b82f6'
+      }
+    }
+  };
+  
+  const currentTheme = themes[theme];
+
+  // Initialize beat detector for advanced analysis
+  useEffect(() => {
+    if (!deck || !enableBeatDetection) return;
+
+    const analyzerNode = deck['analyserNode'];
+    const audioContext = deck['audioContext'];
+    
+    if (audioContext && analyzerNode) {
+      beatDetectorRef.current = new BeatDetector(audioContext, analyzerNode);
+      
+      // Set up enhanced callbacks
+      beatDetectorRef.current.onBeat(setBeatInfo);
+      beatDetectorRef.current.onSpectralFeatures(setSpectralFeatures);
+      beatDetectorRef.current.onTransient((transient) => {
+        setTransientInfo(transient);
+        if (transient.isTransient) {
+          setTransientMarkers(prev => [
+            ...prev.slice(-20), // Keep last 20 markers
+            {
+              time: currentTime,
+              type: transient.type,
+              strength: transient.strength
+            }
+          ]);
+        }
+      });
+    }
+
+    return () => {
+      beatDetectorRef.current?.stopDetection();
+      beatDetectorRef.current = null;
+    };
+  }, [deck, enableBeatDetection, currentTime]);
 
   // Initialize with deck data and set up event listeners
   useEffect(() => {
@@ -31,12 +179,20 @@ export default function WaveformVisualizer({
 
     // Set up deck event listeners for real-time updates
     const updateTime = (time: number) => setCurrentTime(time);
-    const updatePlayState = (playing: boolean) => setIsPlaying(playing);
+    const updatePlayState = (playing: boolean) => {
+      setIsPlaying(playing);
+      if (playing && enableBeatDetection) {
+        beatDetectorRef.current?.startDetection();
+      } else {
+        beatDetectorRef.current?.stopDetection();
+      }
+    };
     const updateBeat = (beat: number) => setCurrentBeat(beat);
     const updateTrackLoaded = () => {
       // Update waveform data from deck analysis
       if (deck.trackInfo?.waveformData) {
         setWaveformData([...deck.trackInfo.waveformData]);
+        generateEnhancedWaveformData();
       }
       
       // Update analysis state
@@ -51,6 +207,7 @@ export default function WaveformVisualizer({
       setBeatGrid([...analysisState.beatGrid]);
       if (deck.trackInfo?.waveformData) {
         setWaveformData([...deck.trackInfo.waveformData]);
+        generateEnhancedWaveformData();
       }
       setIsLoading(false);
     };
@@ -84,6 +241,24 @@ export default function WaveformVisualizer({
         cancelAnimationFrame(animationRef.current);
       }
     };
+  }, [deck, enableBeatDetection]);
+
+  // Generate enhanced waveform data with frequency and stereo information
+  const generateEnhancedWaveformData = useCallback(() => {
+    if (!deck.trackInfo?.waveformData) return;
+
+    const originalData = deck.trackInfo.waveformData;
+    
+    // Simulate stereo channel separation (in real implementation, this would come from deck analysis)
+    const leftChannel = originalData.map((val, i) => val * (0.8 + 0.2 * Math.sin(i * 0.01)));
+    const rightChannel = originalData.map((val, i) => val * (0.8 + 0.2 * Math.cos(i * 0.01)));
+    setStereoWaveformData({ left: leftChannel, right: rightChannel });
+    
+    // Simulate frequency-separated waveform data (bass, mid, high)
+    const bassData = originalData.map(val => val * 0.6); // Lower frequencies dominate bass
+    const midData = originalData.map(val => val * 0.8);
+    const highData = originalData.map(val => val * 0.4); // Higher frequencies are typically quieter
+    setFrequencyWaveformData([bassData, midData, highData]);
   }, [deck]);
 
   // Handle animation updates
@@ -125,6 +300,19 @@ export default function WaveformVisualizer({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Handle stereo mode
+    if (config.stereoMode && stereoWaveformData) {
+      drawStereoWaveform();
+      return;
+    }
+
+    drawEnhancedWaveform(ctx);
+  };
+
+  // Enhanced waveform drawing with frequency coloring and advanced features
+  const drawEnhancedWaveform = (ctx: CanvasRenderingContext2D) => {
+    const canvas = canvasRef.current!;
+    
     // Adjust for retina/high DPI displays
     const dpr = window.devicePixelRatio || 1;
     canvas.width = canvas.clientWidth * dpr;
