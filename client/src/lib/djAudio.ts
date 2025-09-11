@@ -102,6 +102,11 @@ export class DJDeck {
   private analyserNode: AnalyserNode | null = null;
   private audioContext: AudioContext | null = null;
   
+  // Recording and monitoring nodes
+  private recordingTapNode: GainNode | null = null;
+  private monitoringAnalyserNode: AnalyserNode | null = null;
+  private recordingDestinations: Set<AudioNode> = new Set();
+  
   // Connection management
   private outputDestination: AudioNode | null = null;
   
@@ -158,14 +163,26 @@ export class DJDeck {
     this.gainNode = this.audioContext.createGain();
     this.gainNode.gain.value = this.volume;
 
+    // Create recording tap node (unity gain, doesn't affect audio)
+    this.recordingTapNode = this.audioContext.createGain();
+    this.recordingTapNode.gain.value = 1.0;
+
+    // Create monitoring analyser node (separate from main analyser)
+    this.monitoringAnalyserNode = this.audioContext.createAnalyser();
+    this.monitoringAnalyserNode.fftSize = 1024;
+    this.monitoringAnalyserNode.smoothingTimeConstant = 0.3;
+
     // Create analyser node for visualization
     this.analyserNode = this.audioContext.createAnalyser();
     this.analyserNode.fftSize = 2048;
     this.analyserNode.smoothingTimeConstant = 0.8;
 
-    // Connect audio graph: gain -> effects -> analyser -> output
+    // Connect audio graph: gain -> effects -> recordingTap -> analyser -> output
+    //                                    └─> monitoringAnalyser (for recording level meters)
     this.gainNode.connect(this.effectsChain.inputNode);
-    this.effectsChain.connectTo(this.analyserNode);
+    this.effectsChain.connectTo(this.recordingTapNode);
+    this.recordingTapNode.connect(this.analyserNode);
+    this.recordingTapNode.connect(this.monitoringAnalyserNode);
     
     // If we have a stored destination, connect to it now
     if (this.outputDestination) {
@@ -682,6 +699,103 @@ export class DJDeck {
   // Get effects chain for direct access
   getEffectsChain(): EffectsChain {
     return this.effectsChain;
+  }
+
+  // Recording and monitoring access methods
+  
+  // Get recording tap node for session recording (post-effects, pre-output)
+  getRecordingTapNode(): AudioNode | null {
+    this.ensureNodesInitialized();
+    return this.recordingTapNode;
+  }
+  
+  // Get monitoring analyser node for level meters (doesn't affect audio)
+  getMonitoringAnalyserNode(): AnalyserNode | null {
+    this.ensureNodesInitialized();
+    return this.monitoringAnalyserNode;
+  }
+  
+  // Get main analyser node (for waveform visualization)
+  getAnalyserNode(): AnalyserNode | null {
+    this.ensureNodesInitialized();
+    return this.analyserNode;
+  }
+  
+  // Connect recording destination to recording tap
+  connectRecordingDestination(destination: AudioNode): void {
+    this.ensureNodesInitialized();
+    if (this.recordingTapNode && !this.recordingDestinations.has(destination)) {
+      this.recordingTapNode.connect(destination);
+      this.recordingDestinations.add(destination);
+      console.log(`${this.id} connected recording destination`);
+    }
+  }
+  
+  // Disconnect recording destination
+  disconnectRecordingDestination(destination: AudioNode): void {
+    if (this.recordingTapNode && this.recordingDestinations.has(destination)) {
+      this.recordingTapNode.disconnect(destination);
+      this.recordingDestinations.delete(destination);
+      console.log(`${this.id} disconnected recording destination`);
+    }
+  }
+  
+  // Disconnect all recording destinations
+  disconnectAllRecordingDestinations(): void {
+    if (this.recordingTapNode) {
+      this.recordingDestinations.forEach(destination => {
+        this.recordingTapNode!.disconnect(destination);
+      });
+      this.recordingDestinations.clear();
+      console.log(`${this.id} disconnected all recording destinations`);
+    }
+  }
+  
+  // Get recording level data for meters (optimized for recording)
+  getRecordingLevelData(): { peak: number; rms: number } {
+    if (!this.monitoringAnalyserNode) {
+      return { peak: 0, rms: 0 };
+    }
+    
+    const bufferLength = this.monitoringAnalyserNode.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    this.monitoringAnalyserNode.getByteFrequencyData(dataArray);
+    
+    // Calculate peak and RMS values
+    let peak = 0;
+    let sum = 0;
+    
+    for (let i = 0; i < bufferLength; i++) {
+      const value = dataArray[i] / 255;
+      peak = Math.max(peak, value);
+      sum += value * value;
+    }
+    
+    const rms = Math.sqrt(sum / bufferLength);
+    
+    return { peak, rms };
+  }
+  
+  // Get pre-effects audio node (for recording raw deck output)
+  getPreEffectsNode(): AudioNode | null {
+    this.ensureNodesInitialized();
+    return this.gainNode;
+  }
+  
+  // Get post-effects audio node (for recording with effects)
+  getPostEffectsNode(): AudioNode | null {
+    this.ensureNodesInitialized();
+    return this.recordingTapNode;
+  }
+  
+  // Check if recording destinations are connected
+  hasRecordingDestinations(): boolean {
+    return this.recordingDestinations.size > 0;
+  }
+  
+  // Get recording destinations count
+  getRecordingDestinationsCount(): number {
+    return this.recordingDestinations.size;
   }
 
   // Professional hot cue management (8 slots)
@@ -1254,10 +1368,41 @@ export class DJDeck {
   destroy(): void {
     this.stop();
     this.disconnect();
+    
+    // Disconnect all recording destinations
+    this.disconnectAllRecordingDestinations();
+    
+    // Disconnect and clean up recording nodes
+    if (this.recordingTapNode) {
+      this.recordingTapNode.disconnect();
+      this.recordingTapNode = null;
+    }
+    
+    if (this.monitoringAnalyserNode) {
+      this.monitoringAnalyserNode.disconnect();
+      this.monitoringAnalyserNode = null;
+    }
+    
+    // Clean up other nodes
+    if (this.gainNode) {
+      this.gainNode.disconnect();
+      this.gainNode = null;
+    }
+    
+    if (this.analyserNode) {
+      this.analyserNode.disconnect();
+      this.analyserNode = null;
+    }
+    
+    // Clean up effects chain
+    this.effectsChain.destroy();
+    
     this.cuePoints = [];
     this.loops = [];
     this.audioBuffer = null;
     this.trackInfo = null;
+    
+    console.log(`${this.id} destroyed with recording cleanup`);
   }
 }
 
@@ -1274,6 +1419,11 @@ export class DJMixer {
   private deckBGain: GainNode | null = null;
   private masterGain: GainNode | null = null;
   private outputNode: GainNode | null = null;
+  
+  // Recording and monitoring nodes
+  private masterRecordingTapNode: GainNode | null = null;
+  private masterMonitoringAnalyserNode: AnalyserNode | null = null;
+  private recordingDestinations: Set<AudioNode> = new Set();
 
   constructor() {
     this.deckA = new DJDeck('Deck A');
@@ -1291,24 +1441,39 @@ export class DJMixer {
     this.masterGain = this.audioContext.createGain();
     this.outputNode = this.audioContext.createGain();
     
+    // Create recording and monitoring nodes
+    this.masterRecordingTapNode = this.audioContext.createGain();
+    this.masterRecordingTapNode.gain.value = 1.0;
+    
+    this.masterMonitoringAnalyserNode = this.audioContext.createAnalyser();
+    this.masterMonitoringAnalyserNode.fftSize = 1024;
+    this.masterMonitoringAnalyserNode.smoothingTimeConstant = 0.3;
+    
     // Set initial values
     this.masterGain.gain.value = this.masterVolume;
     this.outputNode.gain.value = 1.0;
     
-    // Connect mixer chain: deckGain -> masterGain -> outputNode -> destination
+    // Connect mixer chain: deckGain -> masterGain -> recordingTap -> outputNode -> destination
+    //                                                      └─> monitoringAnalyser
     this.deckAGain.connect(this.masterGain);
     this.deckBGain.connect(this.masterGain);
-    this.masterGain.connect(this.outputNode);
+    this.masterGain.connect(this.masterRecordingTapNode);
+    this.masterRecordingTapNode.connect(this.outputNode);
+    this.masterRecordingTapNode.connect(this.masterMonitoringAnalyserNode);
     this.outputNode.connect(this.audioContext.destination);
     
     // Connect decks to their respective gain nodes
     this.deckA.connectTo(this.deckAGain);
     this.deckB.connectTo(this.deckBGain);
     
+    // Initialize default effects on both decks
+    this.deckA.initializeDefaultEffects();
+    this.deckB.initializeDefaultEffects();
+    
     // Update crossfader
     this.updateCrossfader();
     
-    console.log('DJ Mixer initialized');
+    console.log('DJ Mixer initialized with recording support');
   }
 
   // Set crossfader position (0.0 = full Deck A, 1.0 = full Deck B)
@@ -1428,16 +1593,147 @@ export class DJMixer {
     };
   }
 
+  // Recording and monitoring access methods for mixer
+  
+  // Get master recording tap node (post-crossfader, pre-master volume)
+  getMasterRecordingTapNode(): AudioNode | null {
+    return this.masterRecordingTapNode;
+  }
+  
+  // Get master monitoring analyser node for level meters
+  getMasterMonitoringAnalyserNode(): AnalyserNode | null {
+    return this.masterMonitoringAnalyserNode;
+  }
+  
+  // Get output node (final master output)
+  getOutputNode(): AudioNode | null {
+    return this.outputNode;
+  }
+  
+  // Connect recording destination to master recording tap
+  connectMasterRecordingDestination(destination: AudioNode): void {
+    if (this.masterRecordingTapNode && !this.recordingDestinations.has(destination)) {
+      this.masterRecordingTapNode.connect(destination);
+      this.recordingDestinations.add(destination);
+      console.log('Connected master recording destination');
+    }
+  }
+  
+  // Disconnect recording destination from master tap
+  disconnectMasterRecordingDestination(destination: AudioNode): void {
+    if (this.masterRecordingTapNode && this.recordingDestinations.has(destination)) {
+      this.masterRecordingTapNode.disconnect(destination);
+      this.recordingDestinations.delete(destination);
+      console.log('Disconnected master recording destination');
+    }
+  }
+  
+  // Disconnect all master recording destinations
+  disconnectAllMasterRecordingDestinations(): void {
+    if (this.masterRecordingTapNode) {
+      this.recordingDestinations.forEach(destination => {
+        this.masterRecordingTapNode!.disconnect(destination);
+      });
+      this.recordingDestinations.clear();
+      console.log('Disconnected all master recording destinations');
+    }
+  }
+  
+  // Get master recording level data for meters
+  getMasterRecordingLevelData(): { peak: number; rms: number } {
+    if (!this.masterMonitoringAnalyserNode) {
+      return { peak: 0, rms: 0 };
+    }
+    
+    const bufferLength = this.masterMonitoringAnalyserNode.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    this.masterMonitoringAnalyserNode.getByteFrequencyData(dataArray);
+    
+    // Calculate peak and RMS values
+    let peak = 0;
+    let sum = 0;
+    
+    for (let i = 0; i < bufferLength; i++) {
+      const value = dataArray[i] / 255;
+      peak = Math.max(peak, value);
+      sum += value * value;
+    }
+    
+    const rms = Math.sqrt(sum / bufferLength);
+    
+    return { peak, rms };
+  }
+  
+  // Check if master recording destinations are connected
+  hasMasterRecordingDestinations(): boolean {
+    return this.recordingDestinations.size > 0;
+  }
+  
+  // Get master recording destinations count
+  getMasterRecordingDestinationsCount(): number {
+    return this.recordingDestinations.size;
+  }
+  
+  // Get combined recording level data from both decks and master
+  getCombinedRecordingLevelData(): {
+    deckA: { peak: number; rms: number };
+    deckB: { peak: number; rms: number };
+    master: { peak: number; rms: number };
+  } {
+    return {
+      deckA: this.deckA.getRecordingLevelData(),
+      deckB: this.deckB.getRecordingLevelData(),
+      master: this.getMasterRecordingLevelData()
+    };
+  }
+  
+  // Enable/disable recording for both decks
+  enableDeckRecording(enable: boolean): void {
+    // This could be used for bulk operations on deck recording
+    console.log(`Deck recording ${enable ? 'enabled' : 'disabled'} on mixer`);
+  }
+
   // Cleanup method
   destroy(): void {
     this.deckA.destroy();
     this.deckB.destroy();
     
-    if (this.outputNode) {
-      this.outputNode.disconnect();
+    // Disconnect all recording destinations
+    this.disconnectAllMasterRecordingDestinations();
+    
+    // Clean up master recording nodes
+    if (this.masterRecordingTapNode) {
+      this.masterRecordingTapNode.disconnect();
+      this.masterRecordingTapNode = null;
     }
     
-    console.log('DJ Mixer destroyed');
+    if (this.masterMonitoringAnalyserNode) {
+      this.masterMonitoringAnalyserNode.disconnect();
+      this.masterMonitoringAnalyserNode = null;
+    }
+    
+    // Clean up other mixer nodes
+    if (this.outputNode) {
+      this.outputNode.disconnect();
+      this.outputNode = null;
+    }
+    
+    if (this.masterGain) {
+      this.masterGain.disconnect();
+      this.masterGain = null;
+    }
+    
+    if (this.deckAGain) {
+      this.deckAGain.disconnect();
+      this.deckAGain = null;
+    }
+    
+    if (this.deckBGain) {
+      this.deckBGain.disconnect();
+      this.deckBGain = null;
+    }
+    
+    console.log('DJ Mixer destroyed with recording cleanup');
   }
 }
 

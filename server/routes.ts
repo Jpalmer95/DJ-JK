@@ -1448,6 +1448,347 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(stats);
   }));
 
+  // ===== DJ SESSION RECORDING ROUTES =====
+  
+  // Create a new DJ session
+  app.post('/api/sessions', errorHandler(async (req, res) => {
+    const data = req.body;
+    
+    const result = insertDjSessionSchema.safeParse(data);
+    if (!result.success) {
+      return res.status(400).json({ error: 'Invalid session data', details: result.error });
+    }
+    
+    const session = await storage.createDjSession(data);
+    res.status(201).json(session);
+  }));
+  
+  // Get all sessions for a user
+  app.get('/api/sessions', errorHandler(async (req, res) => {
+    const userId = Number(req.query.userId);
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+    
+    const sessions = await storage.getDjSessions(userId);
+    res.json(sessions);
+  }));
+  
+  // Get a specific session
+  app.get('/api/sessions/:id', errorHandler(async (req, res) => {
+    const id = req.params.id;
+    
+    const session = await storage.getDjSession(id);
+    
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+    
+    res.json(session);
+  }));
+  
+  // Update a session
+  app.patch('/api/sessions/:id', errorHandler(async (req, res) => {
+    const id = req.params.id;
+    const updates = req.body;
+    
+    const result = updateDjSessionSchema.safeParse(updates);
+    if (!result.success) {
+      return res.status(400).json({ error: 'Invalid update data', details: result.error });
+    }
+    
+    const session = await storage.updateDjSession(id, result.data);
+    
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+    
+    res.json(session);
+  }));
+  
+  // Delete a session
+  app.delete('/api/sessions/:id', errorHandler(async (req, res) => {
+    const id = req.params.id;
+    
+    const success = await storage.deleteDjSession(id);
+    
+    if (!success) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+    
+    res.status(204).end();
+  }));
+  
+  // Increment session views
+  app.post('/api/sessions/:id/view', errorHandler(async (req, res) => {
+    const id = req.params.id;
+    
+    await storage.incrementDjSessionViews(id);
+    res.status(200).json({ message: 'View count incremented' });
+  }));
+  
+  // Increment session downloads
+  app.post('/api/sessions/:id/download', errorHandler(async (req, res) => {
+    const id = req.params.id;
+    
+    await storage.incrementDjSessionDownloads(id);
+    res.status(200).json({ message: 'Download count incremented' });
+  }));
+
+  // ===== AUTOMATION EVENT ROUTES =====
+  
+  // Create automation events (bulk)
+  app.post('/api/sessions/:sessionId/automation', errorHandler(async (req, res) => {
+    const sessionId = req.params.sessionId;
+    const { events } = req.body;
+    
+    if (!Array.isArray(events)) {
+      return res.status(400).json({ error: 'Events array is required' });
+    }
+    
+    const createdEvents = [];
+    
+    for (const eventData of events) {
+      const result = insertAutomationEventSchema.safeParse({ ...eventData, sessionId });
+      if (!result.success) {
+        return res.status(400).json({ error: 'Invalid automation event data', details: result.error });
+      }
+      
+      const event = await storage.createAutomationEvent(result.data);
+      createdEvents.push(event);
+    }
+    
+    res.status(201).json(createdEvents);
+  }));
+  
+  // Get automation events for a session
+  app.get('/api/sessions/:sessionId/automation', errorHandler(async (req, res) => {
+    const sessionId = req.params.sessionId;
+    const startTime = req.query.startTime ? Number(req.query.startTime) : undefined;
+    const endTime = req.query.endTime ? Number(req.query.endTime) : undefined;
+    
+    let events;
+    if (startTime !== undefined && endTime !== undefined) {
+      events = await storage.getAutomationEventsByTimeRange(sessionId, startTime, endTime);
+    } else {
+      events = await storage.getAutomationEvents(sessionId);
+    }
+    
+    res.json(events);
+  }));
+  
+  // Delete all automation events for a session
+  app.delete('/api/sessions/:sessionId/automation', errorHandler(async (req, res) => {
+    const sessionId = req.params.sessionId;
+    
+    const success = await storage.deleteAutomationEventsBySession(sessionId);
+    
+    if (!success) {
+      return res.status(404).json({ error: 'Session not found or no events to delete' });
+    }
+    
+    res.status(204).end();
+  }));
+
+  // ===== SESSION TRACK ROUTES =====
+  
+  // Create a session track
+  app.post('/api/sessions/:sessionId/tracks', errorHandler(async (req, res) => {
+    const sessionId = req.params.sessionId;
+    const data = { ...req.body, sessionId };
+    
+    const result = insertSessionTrackSchema.safeParse(data);
+    if (!result.success) {
+      return res.status(400).json({ error: 'Invalid session track data', details: result.error });
+    }
+    
+    const track = await storage.createSessionTrack(result.data);
+    res.status(201).json(track);
+  }));
+  
+  // Get tracks for a session
+  app.get('/api/sessions/:sessionId/tracks', errorHandler(async (req, res) => {
+    const sessionId = req.params.sessionId;
+    
+    const tracks = await storage.getSessionTracks(sessionId);
+    res.json(tracks);
+  }));
+  
+  // Get a specific session track
+  app.get('/api/sessions/:sessionId/tracks/:trackId', errorHandler(async (req, res) => {
+    const trackId = req.params.trackId;
+    
+    const track = await storage.getSessionTrack(trackId);
+    
+    if (!track) {
+      return res.status(404).json({ error: 'Session track not found' });
+    }
+    
+    res.json(track);
+  }));
+  
+  // Update a session track
+  app.patch('/api/sessions/:sessionId/tracks/:trackId', errorHandler(async (req, res) => {
+    const trackId = req.params.trackId;
+    const updates = req.body;
+    
+    const result = updateSessionTrackSchema.safeParse(updates);
+    if (!result.success) {
+      return res.status(400).json({ error: 'Invalid update data', details: result.error });
+    }
+    
+    const track = await storage.updateSessionTrack(trackId, result.data);
+    
+    if (!track) {
+      return res.status(404).json({ error: 'Session track not found' });
+    }
+    
+    res.json(track);
+  }));
+  
+  // Delete a session track
+  app.delete('/api/sessions/:sessionId/tracks/:trackId', errorHandler(async (req, res) => {
+    const trackId = req.params.trackId;
+    
+    const success = await storage.deleteSessionTrack(trackId);
+    
+    if (!success) {
+      return res.status(404).json({ error: 'Session track not found' });
+    }
+    
+    res.status(204).end();
+  }));
+
+  // ===== PERFORMANCE METRIC ROUTES =====
+  
+  // Create a performance metric
+  app.post('/api/sessions/:sessionId/metrics', errorHandler(async (req, res) => {
+    const sessionId = req.params.sessionId;
+    const data = { ...req.body, sessionId };
+    
+    const result = insertPerformanceMetricSchema.safeParse(data);
+    if (!result.success) {
+      return res.status(400).json({ error: 'Invalid performance metric data', details: result.error });
+    }
+    
+    const metric = await storage.createPerformanceMetric(result.data);
+    res.status(201).json(metric);
+  }));
+  
+  // Get performance metrics for a session
+  app.get('/api/sessions/:sessionId/metrics', errorHandler(async (req, res) => {
+    const sessionId = req.params.sessionId;
+    const metricType = req.query.metricType as string;
+    
+    let metrics;
+    if (metricType) {
+      metrics = await storage.getPerformanceMetricsByType(sessionId, metricType);
+    } else {
+      metrics = await storage.getPerformanceMetrics(sessionId);
+    }
+    
+    res.json(metrics);
+  }));
+  
+  // Delete all performance metrics for a session
+  app.delete('/api/sessions/:sessionId/metrics', errorHandler(async (req, res) => {
+    const sessionId = req.params.sessionId;
+    
+    const success = await storage.deletePerformanceMetricsBySession(sessionId);
+    
+    if (!success) {
+      return res.status(404).json({ error: 'Session not found or no metrics to delete' });
+    }
+    
+    res.status(204).end();
+  }));
+
+  // ===== SESSION SHARE ROUTES =====
+  
+  // Create a session share
+  app.post('/api/sessions/:sessionId/share', errorHandler(async (req, res) => {
+    const sessionId = req.params.sessionId;
+    const data = { ...req.body, sessionId };
+    
+    const result = insertSessionShareSchema.safeParse(data);
+    if (!result.success) {
+      return res.status(400).json({ error: 'Invalid session share data', details: result.error });
+    }
+    
+    const share = await storage.createSessionShare(result.data);
+    res.status(201).json(share);
+  }));
+  
+  // Get shares for a session
+  app.get('/api/sessions/:sessionId/share', errorHandler(async (req, res) => {
+    const sessionId = req.params.sessionId;
+    
+    const shares = await storage.getSessionShares(sessionId);
+    res.json(shares);
+  }));
+  
+  // Get a specific session share by ID
+  app.get('/api/sessions/:sessionId/share/:shareId', errorHandler(async (req, res) => {
+    const shareId = req.params.shareId;
+    
+    const share = await storage.getSessionShare(shareId);
+    
+    if (!share) {
+      return res.status(404).json({ error: 'Session share not found' });
+    }
+    
+    res.json(share);
+  }));
+  
+  // Get a session share by share code (public access)
+  app.get('/api/share/:shareCode', errorHandler(async (req, res) => {
+    const shareCode = req.params.shareCode;
+    
+    const share = await storage.getSessionShareByCode(shareCode);
+    
+    if (!share) {
+      return res.status(404).json({ error: 'Share not found' });
+    }
+    
+    // Increment access count
+    await storage.incrementSessionShareAccess(shareCode);
+    
+    res.json(share);
+  }));
+  
+  // Update a session share
+  app.patch('/api/sessions/:sessionId/share/:shareId', errorHandler(async (req, res) => {
+    const shareId = req.params.shareId;
+    const updates = req.body;
+    
+    const result = updateSessionShareSchema.safeParse(updates);
+    if (!result.success) {
+      return res.status(400).json({ error: 'Invalid update data', details: result.error });
+    }
+    
+    const share = await storage.updateSessionShare(shareId, result.data);
+    
+    if (!share) {
+      return res.status(404).json({ error: 'Session share not found' });
+    }
+    
+    res.json(share);
+  }));
+  
+  // Delete a session share
+  app.delete('/api/sessions/:sessionId/share/:shareId', errorHandler(async (req, res) => {
+    const shareId = req.params.shareId;
+    
+    const success = await storage.deleteSessionShare(shareId);
+    
+    if (!success) {
+      return res.status(404).json({ error: 'Session share not found' });
+    }
+    
+    res.status(204).end();
+  }));
+
   const httpServer = createServer(app);
 
   return httpServer;

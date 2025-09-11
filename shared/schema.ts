@@ -168,6 +168,90 @@ export const effectUsageStats = pgTable("effect_usage_stats", {
   timestamp: timestamp("timestamp").defaultNow().notNull(),
 });
 
+// Session Recording Tables
+export const djSessions = pgTable("dj_sessions", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  duration: decimal("duration", { precision: 10, scale: 3 }).notNull(), // Duration in seconds
+  audioUrl: text("audio_url"), // URL to recorded audio file
+  waveformData: json("waveform_data"), // JSON array of master waveform peaks
+  status: text("status").notNull().default("completed"), // "recording", "completed", "failed"
+  recordingQuality: text("recording_quality").notNull().default("standard"), // "professional", "standard", "compressed"
+  trackCount: integer("track_count").default(0).notNull(), // Number of tracks played
+  totalTransitions: integer("total_transitions").default(0).notNull(), // Number of transitions performed
+  avgBpm: decimal("avg_bpm", { precision: 5, scale: 2 }), // Average BPM throughout session
+  energyFlow: json("energy_flow"), // JSON array of energy levels over time
+  tags: text("tags").array().notNull().default([]), // Array of tags/genres
+  isPublic: boolean("is_public").default(false).notNull(),
+  shareCode: text("share_code").unique(), // Public sharing code
+  downloadCount: integer("download_count").default(0).notNull(),
+  viewCount: integer("view_count").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const automationEvents = pgTable("automation_events", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  sessionId: varchar("session_id", { length: 36 }).references(() => djSessions.id, { onDelete: "cascade" }).notNull(),
+  timestamp: decimal("timestamp", { precision: 10, scale: 3 }).notNull(), // Time in seconds from session start
+  eventType: text("event_type").notNull(), // "crossfader", "volume", "eq", "effect", "cue", "loop", "pitch", "transport"
+  deckId: text("deck_id"), // "deckA", "deckB", "master"
+  parameter: text("parameter").notNull(), // e.g., "position", "high", "delay_time", "wet_mix"
+  value: decimal("value", { precision: 10, scale: 6 }), // Numeric value
+  stringValue: text("string_value"), // For non-numeric values
+  metadata: json("metadata"), // Additional context data
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const sessionTracks = pgTable("session_tracks", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  sessionId: varchar("session_id", { length: 36 }).references(() => djSessions.id, { onDelete: "cascade" }).notNull(),
+  trackId: varchar("track_id", { length: 36 }).references(() => djTracks.id).notNull(),
+  deckId: text("deck_id").notNull(), // "deckA" or "deckB"
+  playOrder: integer("play_order").notNull(), // Order in which track was played
+  startTime: decimal("start_time", { precision: 10, scale: 3 }).notNull(), // When track started in session
+  endTime: decimal("end_time", { precision: 10, scale: 3 }), // When track ended (null if last track)
+  playDuration: decimal("play_duration", { precision: 10, scale: 3 }), // How long track actually played
+  transitionType: text("transition_type"), // "cut", "fade", "scratch", "loop_roll"
+  transitionDuration: decimal("transition_duration", { precision: 10, scale: 3 }), // Length of transition
+  avgPitch: decimal("avg_pitch", { precision: 5, scale: 2 }), // Average pitch adjustment during play
+  cuePointsUsed: json("cue_points_used"), // Array of cue point IDs used
+  loopsUsed: json("loops_used"), // Array of loop configurations used
+  effectsUsed: json("effects_used"), // Array of effects applied
+  keyLockEnabled: boolean("key_lock_enabled").default(false).notNull(),
+  syncEnabled: boolean("sync_enabled").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const performanceMetrics = pgTable("performance_metrics", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  sessionId: varchar("session_id", { length: 36 }).references(() => djSessions.id, { onDelete: "cascade" }).notNull(),
+  metricType: text("metric_type").notNull(), // "transition_quality", "beat_matching", "harmonic_mixing", "energy_flow"
+  score: decimal("score", { precision: 5, scale: 2 }).notNull(), // 0-100 score
+  timestamp: decimal("timestamp", { precision: 10, scale: 3 }), // When metric was calculated (null for session-wide)
+  details: json("details").notNull(), // Detailed breakdown of metric calculation
+  suggestions: text("suggestions").array().notNull().default([]), // Improvement suggestions
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const sessionShares = pgTable("session_shares", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  sessionId: varchar("session_id", { length: 36 }).references(() => djSessions.id, { onDelete: "cascade" }).notNull(),
+  shareCode: text("share_code").notNull().unique(),
+  shareType: text("share_type").notNull(), // "public", "private", "unlisted"
+  platform: text("platform"), // "soundcloud", "mixcloud", "social", "direct"
+  expiresAt: timestamp("expires_at"), // Null for permanent shares
+  accessCount: integer("access_count").default(0).notNull(),
+  downloadEnabled: boolean("download_enabled").default(true).notNull(),
+  commentingEnabled: boolean("commenting_enabled").default(true).notNull(),
+  embedEnabled: boolean("embed_enabled").default(true).notNull(),
+  customMetadata: json("custom_metadata"), // Platform-specific metadata
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Schemas for insertion
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -260,6 +344,37 @@ export const insertEffectUsageStatsSchema = createInsertSchema(effectUsageStats)
   timestamp: true,
 });
 
+// Session Recording insert schemas - omit id and timestamps for server-side generation
+export const insertDjSessionSchema = createInsertSchema(djSessions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  downloadCount: true,
+  viewCount: true,
+});
+
+export const insertAutomationEventSchema = createInsertSchema(automationEvents).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSessionTrackSchema = createInsertSchema(sessionTracks).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertPerformanceMetricSchema = createInsertSchema(performanceMetrics).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSessionShareSchema = createInsertSchema(sessionShares).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  accessCount: true,
+});
+
 // Update schemas for PATCH operations - only allow mutable fields
 export const updateSoundLibrarySchema = createInsertSchema(soundLibraries).pick({
   name: true,
@@ -340,6 +455,46 @@ export const updateEffectSettingSchema = createInsertSchema(effectSettings).pick
   category: true,
 }).partial();
 
+// Session Recording update schemas
+export const updateDjSessionSchema = createInsertSchema(djSessions).pick({
+  title: true,
+  description: true,
+  audioUrl: true,
+  waveformData: true,
+  status: true,
+  recordingQuality: true,
+  trackCount: true,
+  totalTransitions: true,
+  avgBpm: true,
+  energyFlow: true,
+  tags: true,
+  isPublic: true,
+  shareCode: true,
+}).partial();
+
+export const updateSessionTrackSchema = createInsertSchema(sessionTracks).pick({
+  endTime: true,
+  playDuration: true,
+  transitionType: true,
+  transitionDuration: true,
+  avgPitch: true,
+  cuePointsUsed: true,
+  loopsUsed: true,
+  effectsUsed: true,
+  keyLockEnabled: true,
+  syncEnabled: true,
+}).partial();
+
+export const updateSessionShareSchema = createInsertSchema(sessionShares).pick({
+  shareType: true,
+  platform: true,
+  expiresAt: true,
+  downloadEnabled: true,
+  commentingEnabled: true,
+  embedEnabled: true,
+  customMetadata: true,
+}).partial();
+
 // Type definitions
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -387,6 +542,22 @@ export type EffectSetting = typeof effectSettings.$inferSelect;
 
 export type InsertEffectUsageStats = z.infer<typeof insertEffectUsageStatsSchema>;
 export type EffectUsageStats = typeof effectUsageStats.$inferSelect;
+
+// Session Recording type definitions
+export type InsertDjSession = z.infer<typeof insertDjSessionSchema>;
+export type DjSession = typeof djSessions.$inferSelect;
+
+export type InsertAutomationEvent = z.infer<typeof insertAutomationEventSchema>;
+export type AutomationEvent = typeof automationEvents.$inferSelect;
+
+export type InsertSessionTrack = z.infer<typeof insertSessionTrackSchema>;
+export type SessionTrack = typeof sessionTracks.$inferSelect;
+
+export type InsertPerformanceMetric = z.infer<typeof insertPerformanceMetricSchema>;
+export type PerformanceMetric = typeof performanceMetrics.$inferSelect;
+
+export type InsertSessionShare = z.infer<typeof insertSessionShareSchema>;
+export type SessionShare = typeof sessionShares.$inferSelect;
 
 // Update type definitions
 export type UpdateSoundLibrary = z.infer<typeof updateSoundLibrarySchema>;

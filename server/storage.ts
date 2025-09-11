@@ -14,6 +14,11 @@ import {
   effectPresets,
   effectSettings,
   effectUsageStats,
+  djSessions,
+  automationEvents,
+  sessionTracks,
+  performanceMetrics,
+  sessionShares,
   type User, 
   type InsertUser, 
   type SoundLibrary, 
@@ -43,7 +48,17 @@ import {
   type EffectSetting,
   type InsertEffectSetting,
   type EffectUsageStats,
-  type InsertEffectUsageStats
+  type InsertEffectUsageStats,
+  type DjSession,
+  type InsertDjSession,
+  type AutomationEvent,
+  type InsertAutomationEvent,
+  type SessionTrack,
+  type InsertSessionTrack,
+  type PerformanceMetric,
+  type InsertPerformanceMetric,
+  type SessionShare,
+  type InsertSessionShare
 } from "@shared/schema";
 import { SharedRecording } from "./routes";
 import { db } from "./db";
@@ -157,6 +172,43 @@ export interface IStorage {
   createEffectUsageStats(statsData: InsertEffectUsageStats): Promise<EffectUsageStats>;
   getEffectUsageStats(userId: number): Promise<EffectUsageStats[]>;
   getEffectUsageStatsByEffect(userId: number, effectType: string): Promise<EffectUsageStats[]>;
+  
+  // DJ Session methods
+  createDjSession(sessionData: InsertDjSession): Promise<DjSession>;
+  getDjSessions(userId: number): Promise<DjSession[]>;
+  getDjSession(id: string): Promise<DjSession | undefined>;
+  updateDjSession(id: string, updates: Partial<InsertDjSession>): Promise<DjSession | undefined>;
+  deleteDjSession(id: string): Promise<boolean>;
+  incrementDjSessionViews(id: string): Promise<void>;
+  incrementDjSessionDownloads(id: string): Promise<void>;
+  
+  // Automation Event methods
+  createAutomationEvent(eventData: InsertAutomationEvent): Promise<AutomationEvent>;
+  getAutomationEvents(sessionId: string): Promise<AutomationEvent[]>;
+  getAutomationEventsByTimeRange(sessionId: string, startTime: number, endTime: number): Promise<AutomationEvent[]>;
+  deleteAutomationEventsBySession(sessionId: string): Promise<boolean>;
+  
+  // Session Track methods
+  createSessionTrack(trackData: InsertSessionTrack): Promise<SessionTrack>;
+  getSessionTracks(sessionId: string): Promise<SessionTrack[]>;
+  getSessionTrack(id: string): Promise<SessionTrack | undefined>;
+  updateSessionTrack(id: string, updates: Partial<InsertSessionTrack>): Promise<SessionTrack | undefined>;
+  deleteSessionTrack(id: string): Promise<boolean>;
+  
+  // Performance Metric methods
+  createPerformanceMetric(metricData: InsertPerformanceMetric): Promise<PerformanceMetric>;
+  getPerformanceMetrics(sessionId: string): Promise<PerformanceMetric[]>;
+  getPerformanceMetricsByType(sessionId: string, metricType: string): Promise<PerformanceMetric[]>;
+  deletePerformanceMetricsBySession(sessionId: string): Promise<boolean>;
+  
+  // Session Share methods
+  createSessionShare(shareData: InsertSessionShare): Promise<SessionShare>;
+  getSessionShares(sessionId: string): Promise<SessionShare[]>;
+  getSessionShare(id: string): Promise<SessionShare | undefined>;
+  getSessionShareByCode(shareCode: string): Promise<SessionShare | undefined>;
+  updateSessionShare(id: string, updates: Partial<InsertSessionShare>): Promise<SessionShare | undefined>;
+  deleteSessionShare(id: string): Promise<boolean>;
+  incrementSessionShareAccess(shareCode: string): Promise<void>;
 }
 
 // In-memory storage implementation
@@ -173,6 +225,11 @@ export class MemStorage implements IStorage {
   private effectPresets: Map<string, EffectPreset>;
   private effectSettings: Map<string, EffectSetting>;
   private effectUsageStats: Map<string, EffectUsageStats>;
+  private djSessions: Map<string, DjSession>;
+  private automationEvents: Map<string, AutomationEvent>;
+  private sessionTracks: Map<string, SessionTrack>;
+  private performanceMetrics: Map<string, PerformanceMetric>;
+  private sessionShares: Map<string, SessionShare>;
   currentId: number;
 
   constructor() {
@@ -188,6 +245,11 @@ export class MemStorage implements IStorage {
     this.effectPresets = new Map();
     this.effectSettings = new Map();
     this.effectUsageStats = new Map();
+    this.djSessions = new Map();
+    this.automationEvents = new Map();
+    this.sessionTracks = new Map();
+    this.performanceMetrics = new Map();
+    this.sessionShares = new Map();
     this.currentId = 1;
     
     // Initialize default effect categories
@@ -598,6 +660,310 @@ export class MemStorage implements IStorage {
     
     this.sessionEvents.delete(id);
     return true;
+  }
+
+  // DJ Session methods
+  async createDjSession(sessionData: InsertDjSession): Promise<DjSession> {
+    const id = randomUUID();
+    const session: DjSession = {
+      userId: sessionData.userId,
+      title: sessionData.title,
+      description: sessionData.description ?? null,
+      duration: sessionData.duration,
+      audioUrl: sessionData.audioUrl ?? null,
+      waveformData: sessionData.waveformData ?? null,
+      status: sessionData.status ?? "completed",
+      recordingQuality: sessionData.recordingQuality ?? "standard",
+      trackCount: sessionData.trackCount ?? 0,
+      totalTransitions: sessionData.totalTransitions ?? 0,
+      avgBpm: sessionData.avgBpm ?? null,
+      energyFlow: sessionData.energyFlow ?? null,
+      tags: sessionData.tags ?? [],
+      isPublic: sessionData.isPublic ?? false,
+      shareCode: sessionData.shareCode ?? null,
+      downloadCount: 0,
+      viewCount: 0,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.djSessions.set(id, session);
+    return session;
+  }
+
+  async getDjSessions(userId: number): Promise<DjSession[]> {
+    return Array.from(this.djSessions.values()).filter(session => session.userId === userId);
+  }
+
+  async getDjSession(id: string): Promise<DjSession | undefined> {
+    return this.djSessions.get(id);
+  }
+
+  async updateDjSession(id: string, updates: Partial<InsertDjSession>): Promise<DjSession | undefined> {
+    const existing = this.djSessions.get(id);
+    if (!existing) return undefined;
+
+    const updated: DjSession = {
+      ...existing,
+      ...(updates.title !== undefined && { title: updates.title }),
+      ...(updates.description !== undefined && { description: updates.description }),
+      ...(updates.audioUrl !== undefined && { audioUrl: updates.audioUrl }),
+      ...(updates.waveformData !== undefined && { waveformData: updates.waveformData }),
+      ...(updates.status !== undefined && { status: updates.status }),
+      ...(updates.recordingQuality !== undefined && { recordingQuality: updates.recordingQuality }),
+      ...(updates.trackCount !== undefined && { trackCount: updates.trackCount }),
+      ...(updates.totalTransitions !== undefined && { totalTransitions: updates.totalTransitions }),
+      ...(updates.avgBpm !== undefined && { avgBpm: updates.avgBpm }),
+      ...(updates.energyFlow !== undefined && { energyFlow: updates.energyFlow }),
+      ...(updates.tags !== undefined && { tags: updates.tags }),
+      ...(updates.isPublic !== undefined && { isPublic: updates.isPublic }),
+      ...(updates.shareCode !== undefined && { shareCode: updates.shareCode }),
+      updatedAt: new Date(),
+    };
+    this.djSessions.set(id, updated);
+    return updated;
+  }
+
+  async deleteDjSession(id: string): Promise<boolean> {
+    if (!this.djSessions.has(id)) return false;
+
+    // Cascading delete: remove associated automation events, session tracks, metrics, and shares
+    const automationEventsToDelete = Array.from(this.automationEvents.values())
+      .filter(event => event.sessionId === id)
+      .map(event => event.id);
+
+    const sessionTracksToDelete = Array.from(this.sessionTracks.values())
+      .filter(track => track.sessionId === id)
+      .map(track => track.id);
+
+    const metricsToDelete = Array.from(this.performanceMetrics.values())
+      .filter(metric => metric.sessionId === id)
+      .map(metric => metric.id);
+
+    const sharesToDelete = Array.from(this.sessionShares.values())
+      .filter(share => share.sessionId === id)
+      .map(share => share.id);
+
+    // Delete associated entities
+    automationEventsToDelete.forEach(eventId => this.automationEvents.delete(eventId));
+    sessionTracksToDelete.forEach(trackId => this.sessionTracks.delete(trackId));
+    metricsToDelete.forEach(metricId => this.performanceMetrics.delete(metricId));
+    sharesToDelete.forEach(shareId => this.sessionShares.delete(shareId));
+
+    this.djSessions.delete(id);
+    return true;
+  }
+
+  async incrementDjSessionViews(id: string): Promise<void> {
+    const session = this.djSessions.get(id);
+    if (session) {
+      const updated = { ...session, viewCount: session.viewCount + 1 };
+      this.djSessions.set(id, updated);
+    }
+  }
+
+  async incrementDjSessionDownloads(id: string): Promise<void> {
+    const session = this.djSessions.get(id);
+    if (session) {
+      const updated = { ...session, downloadCount: session.downloadCount + 1 };
+      this.djSessions.set(id, updated);
+    }
+  }
+
+  // Automation Event methods
+  async createAutomationEvent(eventData: InsertAutomationEvent): Promise<AutomationEvent> {
+    const id = randomUUID();
+    const event: AutomationEvent = {
+      ...eventData,
+      id,
+      createdAt: new Date(),
+    };
+    this.automationEvents.set(id, event);
+    return event;
+  }
+
+  async getAutomationEvents(sessionId: string): Promise<AutomationEvent[]> {
+    return Array.from(this.automationEvents.values())
+      .filter(event => event.sessionId === sessionId)
+      .sort((a, b) => parseFloat(a.timestamp) - parseFloat(b.timestamp));
+  }
+
+  async getAutomationEventsByTimeRange(sessionId: string, startTime: number, endTime: number): Promise<AutomationEvent[]> {
+    return Array.from(this.automationEvents.values())
+      .filter(event => 
+        event.sessionId === sessionId && 
+        parseFloat(event.timestamp) >= startTime && 
+        parseFloat(event.timestamp) <= endTime
+      )
+      .sort((a, b) => parseFloat(a.timestamp) - parseFloat(b.timestamp));
+  }
+
+  async deleteAutomationEventsBySession(sessionId: string): Promise<boolean> {
+    const eventsToDelete = Array.from(this.automationEvents.entries())
+      .filter(([_, event]) => event.sessionId === sessionId);
+
+    eventsToDelete.forEach(([eventId, _]) => this.automationEvents.delete(eventId));
+    return eventsToDelete.length > 0;
+  }
+
+  // Session Track methods
+  async createSessionTrack(trackData: InsertSessionTrack): Promise<SessionTrack> {
+    const id = randomUUID();
+    const track: SessionTrack = {
+      ...trackData,
+      id,
+      createdAt: new Date(),
+    };
+    this.sessionTracks.set(id, track);
+    return track;
+  }
+
+  async getSessionTracks(sessionId: string): Promise<SessionTrack[]> {
+    return Array.from(this.sessionTracks.values())
+      .filter(track => track.sessionId === sessionId)
+      .sort((a, b) => a.playOrder - b.playOrder);
+  }
+
+  async getSessionTrack(id: string): Promise<SessionTrack | undefined> {
+    return this.sessionTracks.get(id);
+  }
+
+  async updateSessionTrack(id: string, updates: Partial<InsertSessionTrack>): Promise<SessionTrack | undefined> {
+    const existing = this.sessionTracks.get(id);
+    if (!existing) return undefined;
+
+    const updated: SessionTrack = {
+      ...existing,
+      ...(updates.endTime !== undefined && { endTime: updates.endTime }),
+      ...(updates.playDuration !== undefined && { playDuration: updates.playDuration }),
+      ...(updates.transitionType !== undefined && { transitionType: updates.transitionType }),
+      ...(updates.transitionDuration !== undefined && { transitionDuration: updates.transitionDuration }),
+      ...(updates.avgPitch !== undefined && { avgPitch: updates.avgPitch }),
+      ...(updates.cuePointsUsed !== undefined && { cuePointsUsed: updates.cuePointsUsed }),
+      ...(updates.loopsUsed !== undefined && { loopsUsed: updates.loopsUsed }),
+      ...(updates.effectsUsed !== undefined && { effectsUsed: updates.effectsUsed }),
+      ...(updates.keyLockEnabled !== undefined && { keyLockEnabled: updates.keyLockEnabled }),
+      ...(updates.syncEnabled !== undefined && { syncEnabled: updates.syncEnabled }),
+    };
+    this.sessionTracks.set(id, updated);
+    return updated;
+  }
+
+  async deleteSessionTrack(id: string): Promise<boolean> {
+    if (!this.sessionTracks.has(id)) return false;
+    
+    this.sessionTracks.delete(id);
+    return true;
+  }
+
+  // Performance Metric methods
+  async createPerformanceMetric(metricData: InsertPerformanceMetric): Promise<PerformanceMetric> {
+    const id = randomUUID();
+    const metric: PerformanceMetric = {
+      ...metricData,
+      id,
+      createdAt: new Date(),
+    };
+    this.performanceMetrics.set(id, metric);
+    return metric;
+  }
+
+  async getPerformanceMetrics(sessionId: string): Promise<PerformanceMetric[]> {
+    return Array.from(this.performanceMetrics.values())
+      .filter(metric => metric.sessionId === sessionId)
+      .sort((a, b) => {
+        if (!a.timestamp && !b.timestamp) return 0;
+        if (!a.timestamp) return 1;
+        if (!b.timestamp) return -1;
+        return parseFloat(a.timestamp) - parseFloat(b.timestamp);
+      });
+  }
+
+  async getPerformanceMetricsByType(sessionId: string, metricType: string): Promise<PerformanceMetric[]> {
+    return Array.from(this.performanceMetrics.values())
+      .filter(metric => metric.sessionId === sessionId && metric.metricType === metricType)
+      .sort((a, b) => {
+        if (!a.timestamp && !b.timestamp) return 0;
+        if (!a.timestamp) return 1;
+        if (!b.timestamp) return -1;
+        return parseFloat(a.timestamp) - parseFloat(b.timestamp);
+      });
+  }
+
+  async deletePerformanceMetricsBySession(sessionId: string): Promise<boolean> {
+    const metricsToDelete = Array.from(this.performanceMetrics.entries())
+      .filter(([_, metric]) => metric.sessionId === sessionId);
+
+    metricsToDelete.forEach(([metricId, _]) => this.performanceMetrics.delete(metricId));
+    return metricsToDelete.length > 0;
+  }
+
+  // Session Share methods
+  async createSessionShare(shareData: InsertSessionShare): Promise<SessionShare> {
+    const id = randomUUID();
+    const share: SessionShare = {
+      sessionId: shareData.sessionId,
+      shareCode: shareData.shareCode,
+      shareType: shareData.shareType,
+      platform: shareData.platform ?? null,
+      expiresAt: shareData.expiresAt ?? null,
+      downloadEnabled: shareData.downloadEnabled ?? true,
+      commentingEnabled: shareData.commentingEnabled ?? true,
+      embedEnabled: shareData.embedEnabled ?? true,
+      customMetadata: shareData.customMetadata ?? null,
+      accessCount: 0,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.sessionShares.set(id, share);
+    return share;
+  }
+
+  async getSessionShares(sessionId: string): Promise<SessionShare[]> {
+    return Array.from(this.sessionShares.values()).filter(share => share.sessionId === sessionId);
+  }
+
+  async getSessionShare(id: string): Promise<SessionShare | undefined> {
+    return this.sessionShares.get(id);
+  }
+
+  async getSessionShareByCode(shareCode: string): Promise<SessionShare | undefined> {
+    return Array.from(this.sessionShares.values()).find(share => share.shareCode === shareCode);
+  }
+
+  async updateSessionShare(id: string, updates: Partial<InsertSessionShare>): Promise<SessionShare | undefined> {
+    const existing = this.sessionShares.get(id);
+    if (!existing) return undefined;
+
+    const updated: SessionShare = {
+      ...existing,
+      ...(updates.shareType !== undefined && { shareType: updates.shareType }),
+      ...(updates.platform !== undefined && { platform: updates.platform }),
+      ...(updates.expiresAt !== undefined && { expiresAt: updates.expiresAt }),
+      ...(updates.downloadEnabled !== undefined && { downloadEnabled: updates.downloadEnabled }),
+      ...(updates.commentingEnabled !== undefined && { commentingEnabled: updates.commentingEnabled }),
+      ...(updates.embedEnabled !== undefined && { embedEnabled: updates.embedEnabled }),
+      ...(updates.customMetadata !== undefined && { customMetadata: updates.customMetadata }),
+      updatedAt: new Date(),
+    };
+    this.sessionShares.set(id, updated);
+    return updated;
+  }
+
+  async deleteSessionShare(id: string): Promise<boolean> {
+    if (!this.sessionShares.has(id)) return false;
+    
+    this.sessionShares.delete(id);
+    return true;
+  }
+
+  async incrementSessionShareAccess(shareCode: string): Promise<void> {
+    const share = Array.from(this.sessionShares.values()).find(s => s.shareCode === shareCode);
+    if (share) {
+      const updated = { ...share, accessCount: share.accessCount + 1 };
+      this.sessionShares.set(share.id, updated);
+    }
   }
 }
 
