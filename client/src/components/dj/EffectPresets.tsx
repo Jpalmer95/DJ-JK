@@ -105,7 +105,19 @@ export default function EffectPresets({
   // Fetch effect categories from API
   const { data: categories = [], isLoading: categoriesLoading } = useQuery({
     queryKey: ['/api/effect-categories'],
-    queryFn: () => fetch('/api/effect-categories').then(res => res.json()),
+    queryFn: async () => {
+      try {
+        const res = await fetch('/api/effect-categories');
+        if (!res.ok) {
+          console.warn('Effect categories API not available, using empty array');
+          return [];
+        }
+        return res.json();
+      } catch (error) {
+        console.warn('Effect categories API error, using empty array:', error);
+        return [];
+      }
+    },
   });
   
   // Mutation to save new preset
