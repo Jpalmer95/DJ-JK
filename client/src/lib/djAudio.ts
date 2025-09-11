@@ -128,6 +128,8 @@ export class DJDeck {
   private onCueChangeCallback?: (cuePoints: CuePoint[]) => void;
   private onLoopChangeCallback?: (loops: LoopPoint[]) => void;
   private onSyncStateChangeCallback?: (syncState: SyncState) => void;
+  private onAutoLoopChangeCallback?: (autoLoop: number | null) => void;
+  private onLoopRollChangeCallback?: (isActive: boolean) => void;
   
   // Analysis state
   private isAnalyzing: boolean = false;
@@ -911,8 +913,9 @@ export class DJDeck {
     this.loops.push(loop);
     this.currentAutoLoop = beats;
     
-    // Fire event immediately
+    // Fire events immediately
     this.onLoopChangeCallback?.([...this.loops]);
+    this.onAutoLoopChangeCallback?.(beats);
     
     console.log(`Set ${beats} beat loop from ${startTime.toFixed(2)}s to ${endTime.toFixed(2)}s`);
   }
@@ -922,8 +925,9 @@ export class DJDeck {
       this.loops = this.loops.filter(loop => loop.beatLength !== this.currentAutoLoop);
       this.currentAutoLoop = null;
       
-      // Fire event immediately
+      // Fire events immediately
       this.onLoopChangeCallback?.([...this.loops]);
+      this.onAutoLoopChangeCallback?.(null);
     }
   }
   
@@ -940,6 +944,9 @@ export class DJDeck {
     if (rollLoop) {
       rollLoop.isRoll = true;
     }
+    
+    // Fire loop roll event
+    this.onLoopRollChangeCallback?.(true);
   }
   
   stopLoopRoll(): void {
@@ -954,8 +961,10 @@ export class DJDeck {
     this.loopRollActive = false;
     this.currentAutoLoop = null;
     
-    // Fire event immediately
+    // Fire events immediately
     this.onLoopChangeCallback?.([...this.loops]);
+    this.onLoopRollChangeCallback?.(false);
+    this.onAutoLoopChangeCallback?.(null);
     
     console.log(`Loop roll ended, returned to ${this.loopRollReturn.toFixed(2)}s`);
   }
@@ -1227,6 +1236,14 @@ export class DJDeck {
   
   onSyncStateChange(callback: (syncState: SyncState) => void): void {
     this.onSyncStateChangeCallback = callback;
+  }
+
+  onAutoLoopChange(callback: (autoLoop: number | null) => void): void {
+    this.onAutoLoopChangeCallback = callback;
+  }
+
+  onLoopRollChange(callback: (isActive: boolean) => void): void {
+    this.onLoopRollChangeCallback = callback;
   }
   
   // Get analysis state for UI components
