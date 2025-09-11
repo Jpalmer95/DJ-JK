@@ -18,6 +18,9 @@ interface WaveformVisualizerProps {
   zoomLevel?: number;
   onZoomChange?: (zoom: number) => void;
   theme?: 'dark' | 'neon' | 'retro' | 'minimal';
+  playing?: boolean;
+  currentTime?: number;
+  duration?: number;
 }
 
 interface WaveformConfig {
@@ -302,7 +305,7 @@ export default function WaveformVisualizer({
 
     // Handle stereo mode
     if (config.stereoMode && stereoWaveformData) {
-      drawStereoWaveform();
+      drawEnhancedWaveform(ctx);
       return;
     }
 

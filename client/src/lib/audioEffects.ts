@@ -132,12 +132,12 @@ export abstract class BaseEffect {
 
 // 3-Band EQ Effect
 export class ThreeBandEQ extends BaseEffect {
-  private lowFilter: BiquadFilterNode;
-  private midFilter: BiquadFilterNode;
-  private highFilter: BiquadFilterNode;
-  private lowGain: GainNode;
-  private midGain: GainNode;
-  private highGain: GainNode;
+  private lowFilter!: BiquadFilterNode;
+  private midFilter!: BiquadFilterNode;
+  private highFilter!: BiquadFilterNode;
+  private lowGain!: GainNode;
+  private midGain!: GainNode;
+  private highGain!: GainNode;
 
   constructor(id: string = 'eq3') {
     super(id, 'ThreeBandEQ');
@@ -220,7 +220,7 @@ export class ThreeBandEQ extends BaseEffect {
 
 // High/Low Pass Filter Effect
 export class Filter extends BaseEffect {
-  private filterNode: BiquadFilterNode;
+  private filterNode!: BiquadFilterNode;
 
   constructor(id: string = 'filter') {
     super(id, 'Filter');
@@ -263,7 +263,7 @@ export class Filter extends BaseEffect {
 
 // Reverb Effect using ConvolverNode
 export class Reverb extends BaseEffect {
-  private convolverNode: ConvolverNode;
+  private convolverNode!: ConvolverNode;
   private reverbBuffer: AudioBuffer | null = null;
 
   constructor(id: string = 'reverb') {
@@ -346,9 +346,9 @@ export class Reverb extends BaseEffect {
 
 // Delay Effect
 export class Delay extends BaseEffect {
-  private delayNode: DelayNode;
-  private feedbackNode: GainNode;
-  private delayGainNode: GainNode;
+  private delayNode!: DelayNode;
+  private feedbackNode!: GainNode;
+  private delayGainNode!: GainNode;
 
   constructor(id: string = 'delay') {
     super(id, 'Delay');
@@ -408,9 +408,9 @@ export class Delay extends BaseEffect {
 
 // Distortion Effect
 export class Distortion extends BaseEffect {
-  private waveShaperNode: WaveShaperNode;
-  private preGainNode: GainNode;
-  private postGainNode: GainNode;
+  private waveShaperNode!: WaveShaperNode;
+  private preGainNode!: GainNode;
+  private postGainNode!: GainNode;
 
   constructor(id: string = 'distortion') {
     super(id, 'Distortion');
@@ -475,9 +475,9 @@ export class Distortion extends BaseEffect {
 // Phaser Effect
 export class Phaser extends BaseEffect {
   private allpassFilters: BiquadFilterNode[] = [];
-  private lfoGainNode: GainNode;
-  private lfo: OscillatorNode;
-  private feedbackNode: GainNode;
+  private lfoGainNode!: GainNode;
+  private lfo!: OscillatorNode;
+  private feedbackNode!: GainNode;
 
   constructor(id: string = 'phaser') {
     super(id, 'Phaser');
@@ -552,10 +552,10 @@ export class Phaser extends BaseEffect {
 
 // Flanger Effect
 export class Flanger extends BaseEffect {
-  private delayNode: DelayNode;
-  private lfo: OscillatorNode;
-  private lfoGainNode: GainNode;
-  private feedbackNode: GainNode;
+  private delayNode!: DelayNode;
+  private lfo!: OscillatorNode;
+  private lfoGainNode!: GainNode;
+  private feedbackNode!: GainNode;
 
   constructor(id: string = 'flanger') {
     super(id, 'Flanger');
@@ -614,7 +614,7 @@ export class Flanger extends BaseEffect {
 
 // Bitcrusher Effect
 export class Bitcrusher extends BaseEffect {
-  private scriptProcessor: ScriptProcessorNode;
+  private scriptProcessor!: ScriptProcessorNode;
   private sampleReduction: number = 1;
   private bitDepth: number = 16;
 
@@ -722,8 +722,7 @@ export class EffectsChain {
     // Disconnect all existing connections
     this.inputNode.disconnect();
     this.effects.forEach(effect => {
-      effect.inputNode.disconnect();
-      effect.outputNode.disconnect();
+      effect.destroy();
     });
 
     if (this.effects.length === 0 || this.masterBypass) {
@@ -731,10 +730,10 @@ export class EffectsChain {
       this.inputNode.connect(this.outputNode);
     } else {
       // Connect effects in series
-      this.inputNode.connect(this.effects[0].inputNode);
+      this.inputNode.connect(this.effects[0]['inputNode']);
       
       for (let i = 0; i < this.effects.length - 1; i++) {
-        this.effects[i].connectTo(this.effects[i + 1].inputNode);
+        this.effects[i].connectTo(this.effects[i + 1]['inputNode']);
       }
       
       this.effects[this.effects.length - 1].connectTo(this.outputNode);

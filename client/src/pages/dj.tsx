@@ -487,10 +487,7 @@ export default function ProfessionalDJPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Initialize mixer connections and default effects
-    mixer.deckA.connectTo(mixer.inputA);
-    mixer.deckB.connectTo(mixer.inputB);
-    mixer.connectToOutput();
+    // Initialize default effects (decks are already connected in DJMixer constructor)
     
     // Initialize default effects for each deck
     mixer.deckA.initializeDefaultEffects();
@@ -831,17 +828,17 @@ export default function ProfessionalDJPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
           {/* Suno AI Generator */}
           <div>
-            <SunoGenerator onTrackGenerated={handleTrackGenerated} />
+            <SunoGenerator onLoadToDeck={handleTrackGenerated} />
           </div>
 
           {/* Mood Controls */}
           <div>
-            <MoodMenu onTrackGenerated={handleMoodTrackGenerated} />
+            <MoodMenu onLoadToDeck={handleMoodTrackGenerated} />
           </div>
           
           {/* Mood Journey Tracker */}
           <div>
-            <MoodJourneyTracker />
+            <MoodJourneyTracker userId={1} />
           </div>
         </div>
         

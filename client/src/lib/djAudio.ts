@@ -181,7 +181,7 @@ export class DJDeck {
 
     // Connect audio graph: gain -> effects -> recordingTap -> analyser -> output
     //                                    └─> monitoringAnalyser (for recording level meters)
-    this.gainNode.connect(this.effectsChain.inputNode);
+    this.effectsChain.connectFrom(this.gainNode);
     this.effectsChain.connectTo(this.recordingTapNode);
     this.recordingTapNode.connect(this.analyserNode);
     this.recordingTapNode.connect(this.monitoringAnalyserNode);

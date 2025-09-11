@@ -87,7 +87,19 @@ export default function EffectPresets({
   // Fetch effect presets from API
   const { data: presets = [], isLoading: presetsLoading, error: presetsError } = useQuery({
     queryKey: ['/api/effect-presets', userId],
-    queryFn: () => fetch(`/api/effect-presets?userId=${userId}`).then(res => res.json()),
+    queryFn: async () => {
+      try {
+        const res = await fetch(`/api/effect-presets?userId=${userId}`);
+        if (!res.ok) {
+          console.warn('Effect presets API not available, using empty array');
+          return [];
+        }
+        return res.json();
+      } catch (error) {
+        console.warn('Effect presets API error, using empty array:', error);
+        return [];
+      }
+    },
   });
   
   // Fetch effect categories from API
@@ -178,18 +190,18 @@ export default function EffectPresets({
   });
   
   // Filter and sort presets
-  const filteredPresets = presets
-    .filter(preset => {
+  const filteredPresets = (Array.isArray(presets) ? presets : [])
+    .filter((preset: PresetWithMetadata) => {
       const matchesSearch = preset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            preset.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           preset.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+                           preset.tags.some((tag: string) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
       
       const matchesCategory = selectedCategory === 'all' || preset.category === selectedCategory;
       const matchesFavorites = !showFavoritesOnly || preset.isFavorite;
       
       return matchesSearch && matchesCategory && matchesFavorites;
     })
-    .sort((a, b) => {
+    .sort((a: PresetWithMetadata, b: PresetWithMetadata) => {
       switch (sortBy) {
         case 'lastUsed':
           return (b.lastUsed?.getTime() || 0) - (a.lastUsed?.getTime() || 0);
@@ -268,7 +280,7 @@ export default function EffectPresets({
   
   // Toggle favorite
   const toggleFavorite = (presetId: string) => {
-    const preset = presets.find(p => p.id === presetId);
+    const preset = presets.find((p: PresetWithMetadata) => p.id === presetId);
     if (!preset) return;
     
     updatePresetMutation.mutate({
@@ -313,7 +325,7 @@ export default function EffectPresets({
         preset.id = `imported_${Date.now()}`;
         preset.author = `${preset.author} (Imported)`;
         
-        setPresets(prev => [...prev, preset]);
+        queryClient.invalidateQueries({ queryKey: ['/api/effect-presets', userId] });
         
         toast({
           title: "Preset Imported",
@@ -336,7 +348,7 @@ export default function EffectPresets({
   
   // Get category info
   const getCategoryInfo = (categoryId: string) => {
-    return categories.find(cat => cat.id === categoryId) || categories[0];
+    return categories.find((cat: PresetCategory) => cat.id === categoryId) || categories[0];
   };
   
   // Render preset card
@@ -510,7 +522,7 @@ export default function EffectPresets({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
-                    {categories.map(category => (
+                    {categories.map((category: PresetCategory) => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name}
                       </SelectItem>
@@ -574,7 +586,7 @@ export default function EffectPresets({
                             <SelectValue placeholder="Select category" />
                           </SelectTrigger>
                           <SelectContent>
-                            {categories.map(category => (
+                            {categories.map((category: PresetCategory) => (
                               <SelectItem key={category.id} value={category.id}>
                                 {category.name}
                               </SelectItem>
@@ -635,7 +647,7 @@ export default function EffectPresets({
                     variant="outline"
                     size="sm"
                     className="border-blue-600 text-blue-400 hover:bg-blue-900"
-                    as="span"
+                    asChild
                   >
                     <Upload className="w-4 h-4 mr-1" />
                     Import
