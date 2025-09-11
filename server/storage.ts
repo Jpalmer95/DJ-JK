@@ -10,6 +10,10 @@ import {
   loops,
   moodTransitions,
   sessionEvents,
+  effectCategories,
+  effectPresets,
+  effectSettings,
+  effectUsageStats,
   type User, 
   type InsertUser, 
   type SoundLibrary, 
@@ -31,7 +35,15 @@ import {
   type MoodTransition,
   type InsertMoodTransition,
   type SessionEvent,
-  type InsertSessionEvent
+  type InsertSessionEvent,
+  type EffectCategory,
+  type InsertEffectCategory,
+  type EffectPreset,
+  type InsertEffectPreset,
+  type EffectSetting,
+  type InsertEffectSetting,
+  type EffectUsageStats,
+  type InsertEffectUsageStats
 } from "@shared/schema";
 import { SharedRecording } from "./routes";
 import { db } from "./db";
@@ -117,6 +129,34 @@ export interface IStorage {
   getSessionEvents(sessionId: string): Promise<SessionEvent[]>;
   getSessionEvent(id: string): Promise<SessionEvent | undefined>;
   deleteSessionEvent(id: string): Promise<boolean>;
+  
+  // Effect Category methods
+  createEffectCategory(categoryData: InsertEffectCategory): Promise<EffectCategory>;
+  getEffectCategories(): Promise<EffectCategory[]>;
+  getEffectCategory(id: string): Promise<EffectCategory | undefined>;
+  updateEffectCategory(id: string, updates: Partial<InsertEffectCategory>): Promise<EffectCategory | undefined>;
+  deleteEffectCategory(id: string): Promise<boolean>;
+  
+  // Effect Preset methods
+  createEffectPreset(presetData: InsertEffectPreset): Promise<EffectPreset>;
+  getEffectPresets(userId: number): Promise<EffectPreset[]>;
+  getEffectPresetsByCategory(categoryId: string): Promise<EffectPreset[]>;
+  getEffectPreset(id: string): Promise<EffectPreset | undefined>;
+  updateEffectPreset(id: string, updates: Partial<InsertEffectPreset>): Promise<EffectPreset | undefined>;
+  deleteEffectPreset(id: string): Promise<boolean>;
+  updateEffectPresetUsage(id: string): Promise<void>; // Increment use count and update lastUsedAt
+  
+  // Effect Setting methods
+  createEffectSetting(settingData: InsertEffectSetting): Promise<EffectSetting>;
+  getEffectSettings(userId: number): Promise<EffectSetting[]>;
+  getEffectSettingByKey(userId: number, settingKey: string): Promise<EffectSetting | undefined>;
+  updateEffectSetting(id: string, settingValue: any): Promise<EffectSetting | undefined>;
+  deleteEffectSetting(id: string): Promise<boolean>;
+  
+  // Effect Usage Stats methods
+  createEffectUsageStats(statsData: InsertEffectUsageStats): Promise<EffectUsageStats>;
+  getEffectUsageStats(userId: number): Promise<EffectUsageStats[]>;
+  getEffectUsageStatsByEffect(userId: number, effectType: string): Promise<EffectUsageStats[]>;
 }
 
 // In-memory storage implementation
@@ -129,6 +169,10 @@ export class MemStorage implements IStorage {
   private loops: Map<string, Loop>;
   private moodTransitions: Map<string, MoodTransition>;
   private sessionEvents: Map<string, SessionEvent>;
+  private effectCategories: Map<string, EffectCategory>;
+  private effectPresets: Map<string, EffectPreset>;
+  private effectSettings: Map<string, EffectSetting>;
+  private effectUsageStats: Map<string, EffectUsageStats>;
   currentId: number;
 
   constructor() {
@@ -140,7 +184,14 @@ export class MemStorage implements IStorage {
     this.loops = new Map();
     this.moodTransitions = new Map();
     this.sessionEvents = new Map();
+    this.effectCategories = new Map();
+    this.effectPresets = new Map();
+    this.effectSettings = new Map();
+    this.effectUsageStats = new Map();
     this.currentId = 1;
+    
+    // Initialize default effect categories
+    this.initializeDefaultEffectCategories();
   }
 
   // User methods
@@ -1207,6 +1258,220 @@ export class DatabaseStorage implements IStorage {
       console.error("Error deleting session event:", error);
       return false;
     }
+  }
+  
+  // Effect Category methods
+  async createEffectCategory(categoryData: InsertEffectCategory): Promise<EffectCategory> {
+    const id = randomUUID();
+    const [category] = await db
+      .insert(effectCategories)
+      .values({
+        ...categoryData,
+        id
+      })
+      .returning();
+      
+    return category;
+  }
+  
+  async getEffectCategories(): Promise<EffectCategory[]> {
+    return db.select().from(effectCategories);
+  }
+  
+  async getEffectCategory(id: string): Promise<EffectCategory | undefined> {
+    const [category] = await db
+      .select()
+      .from(effectCategories)
+      .where(eq(effectCategories.id, id));
+      
+    return category;
+  }
+  
+  async updateEffectCategory(id: string, updates: Partial<InsertEffectCategory>): Promise<EffectCategory | undefined> {
+    const [category] = await db
+      .update(effectCategories)
+      .set(updates)
+      .where(eq(effectCategories.id, id))
+      .returning();
+      
+    return category;
+  }
+  
+  async deleteEffectCategory(id: string): Promise<boolean> {
+    try {
+      await db
+        .delete(effectCategories)
+        .where(eq(effectCategories.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting effect category:", error);
+      return false;
+    }
+  }
+  
+  // Effect Preset methods
+  async createEffectPreset(presetData: InsertEffectPreset): Promise<EffectPreset> {
+    const id = randomUUID();
+    const [preset] = await db
+      .insert(effectPresets)
+      .values({
+        ...presetData,
+        id
+      })
+      .returning();
+      
+    return preset;
+  }
+  
+  async getEffectPresets(userId: number): Promise<EffectPreset[]> {
+    return db
+      .select()
+      .from(effectPresets)
+      .where(eq(effectPresets.userId, userId))
+      .orderBy(desc(effectPresets.lastUsedAt));
+  }
+  
+  async getEffectPresetsByCategory(categoryId: string): Promise<EffectPreset[]> {
+    return db
+      .select()
+      .from(effectPresets)
+      .where(eq(effectPresets.categoryId, categoryId))
+      .orderBy(desc(effectPresets.lastUsedAt));
+  }
+  
+  async getEffectPreset(id: string): Promise<EffectPreset | undefined> {
+    const [preset] = await db
+      .select()
+      .from(effectPresets)
+      .where(eq(effectPresets.id, id));
+      
+    return preset;
+  }
+  
+  async updateEffectPreset(id: string, updates: Partial<InsertEffectPreset>): Promise<EffectPreset | undefined> {
+    const [preset] = await db
+      .update(effectPresets)
+      .set({
+        ...updates,
+        updatedAt: new Date()
+      })
+      .where(eq(effectPresets.id, id))
+      .returning();
+      
+    return preset;
+  }
+  
+  async deleteEffectPreset(id: string): Promise<boolean> {
+    try {
+      await db
+        .delete(effectPresets)
+        .where(eq(effectPresets.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting effect preset:", error);
+      return false;
+    }
+  }
+  
+  async updateEffectPresetUsage(id: string): Promise<void> {
+    await db
+      .update(effectPresets)
+      .set({
+        useCount: db.sql`${effectPresets.useCount} + 1`,
+        lastUsedAt: new Date()
+      })
+      .where(eq(effectPresets.id, id));
+  }
+  
+  // Effect Setting methods
+  async createEffectSetting(settingData: InsertEffectSetting): Promise<EffectSetting> {
+    const id = randomUUID();
+    const [setting] = await db
+      .insert(effectSettings)
+      .values({
+        ...settingData,
+        id
+      })
+      .returning();
+      
+    return setting;
+  }
+  
+  async getEffectSettings(userId: number): Promise<EffectSetting[]> {
+    return db
+      .select()
+      .from(effectSettings)
+      .where(eq(effectSettings.userId, userId));
+  }
+  
+  async getEffectSettingByKey(userId: number, settingKey: string): Promise<EffectSetting | undefined> {
+    const [setting] = await db
+      .select()
+      .from(effectSettings)
+      .where(and(
+        eq(effectSettings.userId, userId),
+        eq(effectSettings.settingKey, settingKey)
+      ));
+      
+    return setting;
+  }
+  
+  async updateEffectSetting(id: string, settingValue: any): Promise<EffectSetting | undefined> {
+    const [setting] = await db
+      .update(effectSettings)
+      .set({
+        settingValue,
+        updatedAt: new Date()
+      })
+      .where(eq(effectSettings.id, id))
+      .returning();
+      
+    return setting;
+  }
+  
+  async deleteEffectSetting(id: string): Promise<boolean> {
+    try {
+      await db
+        .delete(effectSettings)
+        .where(eq(effectSettings.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting effect setting:", error);
+      return false;
+    }
+  }
+  
+  // Effect Usage Stats methods
+  async createEffectUsageStats(statsData: InsertEffectUsageStats): Promise<EffectUsageStats> {
+    const id = randomUUID();
+    const [stats] = await db
+      .insert(effectUsageStats)
+      .values({
+        ...statsData,
+        id
+      })
+      .returning();
+      
+    return stats;
+  }
+  
+  async getEffectUsageStats(userId: number): Promise<EffectUsageStats[]> {
+    return db
+      .select()
+      .from(effectUsageStats)
+      .where(eq(effectUsageStats.userId, userId))
+      .orderBy(desc(effectUsageStats.timestamp));
+  }
+  
+  async getEffectUsageStatsByEffect(userId: number, effectType: string): Promise<EffectUsageStats[]> {
+    return db
+      .select()
+      .from(effectUsageStats)
+      .where(and(
+        eq(effectUsageStats.userId, userId),
+        eq(effectUsageStats.effectType, effectType)
+      ))
+      .orderBy(desc(effectUsageStats.timestamp));
   }
 }
 

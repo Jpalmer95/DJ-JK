@@ -116,6 +116,58 @@ export const sessionEvents = pgTable("session_events", {
   data: json("data").notNull(), // JSON object with event-specific data
 });
 
+// Effect Presets and Settings Tables
+export const effectCategories = pgTable("effect_categories", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  color: text("color").notNull().default("#6b7280"), // Hex color for category
+  isSystem: boolean("is_system").default(false).notNull(), // System vs user categories
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const effectPresets = pgTable("effect_presets", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  categoryId: varchar("category_id", { length: 36 }).references(() => effectCategories.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  effectsChain: json("effects_chain").notNull(), // JSON array of effect configurations
+  tags: text("tags").array().notNull().default([]), // Array of tags for searching
+  isPublic: boolean("is_public").default(false).notNull(),
+  isFavorite: boolean("is_favorite").default(false).notNull(),
+  useCount: integer("use_count").default(0).notNull(),
+  lastUsedAt: timestamp("last_used_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const effectSettings = pgTable("effect_settings", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  settingKey: text("setting_key").notNull(), // e.g., "default_reverb_type", "eq_enabled_by_default"
+  settingValue: json("setting_value").notNull(), // JSON value for flexibility
+  category: text("category").notNull(), // e.g., "eq", "reverb", "general"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => {
+  return {
+    // Ensure each user can only have one setting per key
+    uniqueUserSetting: uniqueIndex("unique_user_setting").on(table.userId, table.settingKey),
+  };
+});
+
+export const effectUsageStats = pgTable("effect_usage_stats", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  effectType: text("effect_type").notNull(), // e.g., "ThreeBandEQ", "Reverb", "Delay"
+  parametersUsed: json("parameters_used").notNull(), // JSON object with parameter usage stats
+  sessionDuration: integer("session_duration").notNull(), // Duration in seconds
+  trackId: varchar("track_id", { length: 36 }).references(() => djTracks.id),
+  sessionId: varchar("session_id", { length: 36 }),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+});
+
 // Schemas for insertion
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -183,6 +235,31 @@ export const insertSessionEventSchema = createInsertSchema(sessionEvents).omit({
   timestamp: true,
 });
 
+// Effect schemas - omit id and timestamps for server-side generation
+export const insertEffectCategorySchema = createInsertSchema(effectCategories).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertEffectPresetSchema = createInsertSchema(effectPresets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  useCount: true,
+  lastUsedAt: true,
+});
+
+export const insertEffectSettingSchema = createInsertSchema(effectSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertEffectUsageStatsSchema = createInsertSchema(effectUsageStats).omit({
+  id: true,
+  timestamp: true,
+});
+
 // Update schemas for PATCH operations - only allow mutable fields
 export const updateSoundLibrarySchema = createInsertSchema(soundLibraries).pick({
   name: true,
@@ -241,6 +318,28 @@ export const updateMoodTransitionSchema = createInsertSchema(moodTransitions).pi
   generatedTrackId: true,
 }).partial();
 
+// Effect update schemas
+export const updateEffectCategorySchema = createInsertSchema(effectCategories).pick({
+  name: true,
+  description: true,
+  color: true,
+}).partial();
+
+export const updateEffectPresetSchema = createInsertSchema(effectPresets).pick({
+  categoryId: true,
+  name: true,
+  description: true,
+  effectsChain: true,
+  tags: true,
+  isPublic: true,
+  isFavorite: true,
+}).partial();
+
+export const updateEffectSettingSchema = createInsertSchema(effectSettings).pick({
+  settingValue: true,
+  category: true,
+}).partial();
+
 // Type definitions
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -275,6 +374,19 @@ export type MoodTransition = typeof moodTransitions.$inferSelect;
 
 export type InsertSessionEvent = z.infer<typeof insertSessionEventSchema>;
 export type SessionEvent = typeof sessionEvents.$inferSelect;
+
+// Effect type definitions
+export type InsertEffectCategory = z.infer<typeof insertEffectCategorySchema>;
+export type EffectCategory = typeof effectCategories.$inferSelect;
+
+export type InsertEffectPreset = z.infer<typeof insertEffectPresetSchema>;
+export type EffectPreset = typeof effectPresets.$inferSelect;
+
+export type InsertEffectSetting = z.infer<typeof insertEffectSettingSchema>;
+export type EffectSetting = typeof effectSettings.$inferSelect;
+
+export type InsertEffectUsageStats = z.infer<typeof insertEffectUsageStatsSchema>;
+export type EffectUsageStats = typeof effectUsageStats.$inferSelect;
 
 // Update type definitions
 export type UpdateSoundLibrary = z.infer<typeof updateSoundLibrarySchema>;

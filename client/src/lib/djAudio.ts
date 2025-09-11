@@ -1,4 +1,5 @@
 import { initAudioContext } from "./audio";
+import { EffectsChain, EffectFactory, BaseEffect, EffectPreset } from "./audioEffects";
 
 // Types and interfaces for professional DJ functionality
 export interface DJTrackInfo {
@@ -132,9 +133,18 @@ export class DJDeck {
   
   // Track ID for persistence (UUID from database)
   public trackId: string | null = null;
+  
+  // Professional effects chain
+  public effectsChain: EffectsChain;
+  private effectsEnabled: boolean = true;
+  
+  // Effects event handlers
+  private onEffectChangeCallback?: (effectId: string, parameter: string, value: number) => void;
+  private onEffectBypassCallback?: (effectId: string, bypassed: boolean) => void;
 
   constructor(id: string) {
     this.id = id;
+    this.effectsChain = new EffectsChain();
     this.ensureNodesInitialized();
   }
 
@@ -153,8 +163,9 @@ export class DJDeck {
     this.analyserNode.fftSize = 2048;
     this.analyserNode.smoothingTimeConstant = 0.8;
 
-    // Connect nodes: gain -> analyser
-    this.gainNode.connect(this.analyserNode);
+    // Connect audio graph: gain -> effects -> analyser -> output
+    this.gainNode.connect(this.effectsChain.inputNode);
+    this.effectsChain.connectTo(this.analyserNode);
     
     // If we have a stored destination, connect to it now
     if (this.outputDestination) {
@@ -534,6 +545,143 @@ export class DJDeck {
     const dataArray = new Uint8Array(this.analyserNode.frequencyBinCount);
     this.analyserNode.getByteTimeDomainData(dataArray);
     return dataArray;
+  }
+
+  // Professional Effects Management
+  
+  // Add effect to the effects chain
+  addEffect(effectType: string, effectId?: string): BaseEffect {
+    const effect = EffectFactory.createEffect(effectType, effectId);
+    this.effectsChain.addEffect(effect);
+    console.log(`Added ${effectType} effect to ${this.id}`);
+    return effect;
+  }
+  
+  // Remove effect from chain
+  removeEffect(effectId: string): boolean {
+    this.effectsChain.removeEffect(effectId);
+    console.log(`Removed effect ${effectId} from ${this.id}`);
+    return true;
+  }
+  
+  // Get effect by ID
+  getEffect(effectId: string): BaseEffect | undefined {
+    return this.effectsChain.getEffect(effectId);
+  }
+  
+  // Get all effects in chain
+  getEffects(): BaseEffect[] {
+    return this.effectsChain.getEffects();
+  }
+  
+  // Set effect parameter with smooth transitions
+  setEffectParameter(effectId: string, parameterName: string, value: number): void {
+    const effect = this.getEffect(effectId);
+    if (effect) {
+      effect.setParameter(parameterName, value);
+      this.onEffectChangeCallback?.(effectId, parameterName, value);
+    }
+  }
+  
+  // Get effect parameter value
+  getEffectParameter(effectId: string, parameterName: string): number {
+    const effect = this.getEffect(effectId);
+    return effect ? effect.getParameter(parameterName) : 0;
+  }
+  
+  // Bypass/enable individual effect
+  setEffectBypass(effectId: string, bypass: boolean): void {
+    const effect = this.getEffect(effectId);
+    if (effect) {
+      effect.setBypass(bypass);
+      this.onEffectBypassCallback?.(effectId, bypass);
+      console.log(`${bypass ? 'Bypassed' : 'Enabled'} effect ${effectId} on ${this.id}`);
+    }
+  }
+  
+  // Enable/disable entire effects chain
+  setEffectsEnabled(enabled: boolean): void {
+    this.effectsEnabled = enabled;
+    this.effectsChain.setMasterBypass(!enabled);
+    console.log(`Effects ${enabled ? 'enabled' : 'disabled'} on ${this.id}`);
+  }
+  
+  // Check if effects are enabled
+  areEffectsEnabled(): boolean {
+    return this.effectsEnabled;
+  }
+  
+  // Reorder effects in chain
+  reorderEffect(effectId: string, newIndex: number): void {
+    this.effectsChain.reorderEffect(effectId, newIndex);
+    console.log(`Reordered effect ${effectId} to position ${newIndex} on ${this.id}`);
+  }
+  
+  // Save current effects preset
+  saveEffectsPreset(presetName: string): EffectPreset[] {
+    const presets = this.effectsChain.savePresets();
+    console.log(`Saved effects preset "${presetName}" for ${this.id} with ${presets.length} effects`);
+    return presets;
+  }
+  
+  // Load effects preset
+  loadEffectsPreset(presets: EffectPreset[]): void {
+    this.effectsChain.loadPresets(presets);
+    console.log(`Loaded effects preset with ${presets.length} effects on ${this.id}`);
+  }
+  
+  // Clear all effects
+  clearAllEffects(): void {
+    const effects = this.getEffects();
+    effects.forEach(effect => this.removeEffect(effect.id));
+    console.log(`Cleared all effects from ${this.id}`);
+  }
+  
+  // Sync effect parameters to BPM (for beat-synced effects)
+  syncEffectsToBPM(): void {
+    const currentBPM = this.bpm || this.detectedBpm;
+    if (currentBPM <= 0) return;
+    
+    this.getEffects().forEach(effect => {
+      if (effect.effectType === 'Delay' && effect.getParameter('sync') === 1) {
+        // Sync delay time to quarter notes by default
+        const beatTime = 60 / currentBPM;
+        const delayTime = beatTime; // Quarter note
+        effect.setParameter('time', Math.min(delayTime, 1.0));
+      }
+      
+      if (effect.effectType === 'Phaser' || effect.effectType === 'Flanger') {
+        // Optionally sync LFO rate to BPM divisions
+        const syncParam = effect.getParameter('sync');
+        if (syncParam === 1) {
+          const lfoRate = (currentBPM / 60) / 4; // Synced to quarter notes
+          effect.setParameter('rate', lfoRate);
+        }
+      }
+    });
+    
+    console.log(`Synced effects to BPM ${currentBPM} on ${this.id}`);
+  }
+  
+  // Add default EQ effect (always present)
+  initializeDefaultEffects(): void {
+    if (!this.getEffect('eq3')) {
+      this.addEffect('ThreeBandEQ', 'eq3');
+    }
+  }
+  
+  // Set effect event handlers
+  onEffectChange(callback: (effectId: string, parameter: string, value: number) => void): void {
+    this.onEffectChangeCallback = callback;
+  }
+  
+  onEffectBypass(callback: (effectId: string, bypassed: boolean) => void): void {
+    this.onEffectBypassCallback = callback;
+  }
+  
+  // Get effects chain for direct access
+  getEffectsChain(): EffectsChain {
+    return this.effectsChain;
   }
 
   // Professional hot cue management (8 slots)

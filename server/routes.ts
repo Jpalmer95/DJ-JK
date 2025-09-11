@@ -15,6 +15,10 @@ import {
   insertLoopSchema,
   insertMoodTransitionSchema,
   insertSessionEventSchema,
+  insertEffectCategorySchema,
+  insertEffectPresetSchema,
+  insertEffectSettingSchema,
+  insertEffectUsageStatsSchema,
   updateSoundLibrarySchema,
   updateSoundSampleSchema,
   updateNoteMappingSchema,
@@ -23,7 +27,10 @@ import {
   updateDjSetSchema,
   updateCuePointSchema,
   updateLoopSchema,
-  updateMoodTransitionSchema
+  updateMoodTransitionSchema,
+  updateEffectCategorySchema,
+  updateEffectPresetSchema,
+  updateEffectSettingSchema
 } from "@shared/schema";
 import {
   generateMusic,
@@ -1186,6 +1193,259 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     res.status(204).end();
+  }));
+  
+  // ===== EFFECT CATEGORY ROUTES =====
+  
+  // Create a new effect category
+  app.post('/api/effect-categories', errorHandler(async (req, res) => {
+    const data = req.body;
+    
+    const result = insertEffectCategorySchema.safeParse(data);
+    if (!result.success) {
+      return res.status(400).json({ error: 'Invalid effect category data', details: result.error });
+    }
+    
+    const category = await storage.createEffectCategory(data);
+    res.status(201).json(category);
+  }));
+  
+  // Get all effect categories
+  app.get('/api/effect-categories', errorHandler(async (req, res) => {
+    const categories = await storage.getEffectCategories();
+    res.json(categories);
+  }));
+  
+  // Get a specific effect category
+  app.get('/api/effect-categories/:id', errorHandler(async (req, res) => {
+    const id = req.params.id;
+    
+    const category = await storage.getEffectCategory(id);
+    
+    if (!category) {
+      return res.status(404).json({ error: 'Effect category not found' });
+    }
+    
+    res.json(category);
+  }));
+  
+  // Update an effect category
+  app.patch('/api/effect-categories/:id', errorHandler(async (req, res) => {
+    const id = req.params.id;
+    const updates = req.body;
+    
+    const result = updateEffectCategorySchema.safeParse(updates);
+    if (!result.success) {
+      return res.status(400).json({ error: 'Invalid update data', details: result.error });
+    }
+    
+    const category = await storage.updateEffectCategory(id, result.data);
+    
+    if (!category) {
+      return res.status(404).json({ error: 'Effect category not found' });
+    }
+    
+    res.json(category);
+  }));
+  
+  // Delete an effect category
+  app.delete('/api/effect-categories/:id', errorHandler(async (req, res) => {
+    const id = req.params.id;
+    
+    const success = await storage.deleteEffectCategory(id);
+    
+    if (!success) {
+      return res.status(404).json({ error: 'Effect category not found' });
+    }
+    
+    res.status(204).end();
+  }));
+  
+  // ===== EFFECT PRESET ROUTES =====
+  
+  // Create a new effect preset
+  app.post('/api/effect-presets', errorHandler(async (req, res) => {
+    const data = req.body;
+    
+    const result = insertEffectPresetSchema.safeParse(data);
+    if (!result.success) {
+      return res.status(400).json({ error: 'Invalid effect preset data', details: result.error });
+    }
+    
+    const preset = await storage.createEffectPreset(data);
+    res.status(201).json(preset);
+  }));
+  
+  // Get all effect presets for a user
+  app.get('/api/effect-presets', errorHandler(async (req, res) => {
+    const userId = Number(req.query.userId);
+    const categoryId = req.query.categoryId as string;
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+    
+    let presets;
+    if (categoryId) {
+      presets = await storage.getEffectPresetsByCategory(categoryId);
+    } else {
+      presets = await storage.getEffectPresets(userId);
+    }
+    
+    res.json(presets);
+  }));
+  
+  // Get a specific effect preset
+  app.get('/api/effect-presets/:id', errorHandler(async (req, res) => {
+    const id = req.params.id;
+    
+    const preset = await storage.getEffectPreset(id);
+    
+    if (!preset) {
+      return res.status(404).json({ error: 'Effect preset not found' });
+    }
+    
+    res.json(preset);
+  }));
+  
+  // Update an effect preset
+  app.patch('/api/effect-presets/:id', errorHandler(async (req, res) => {
+    const id = req.params.id;
+    const updates = req.body;
+    
+    const result = updateEffectPresetSchema.safeParse(updates);
+    if (!result.success) {
+      return res.status(400).json({ error: 'Invalid update data', details: result.error });
+    }
+    
+    const preset = await storage.updateEffectPreset(id, result.data);
+    
+    if (!preset) {
+      return res.status(404).json({ error: 'Effect preset not found' });
+    }
+    
+    res.json(preset);
+  }));
+  
+  // Delete an effect preset
+  app.delete('/api/effect-presets/:id', errorHandler(async (req, res) => {
+    const id = req.params.id;
+    
+    const success = await storage.deleteEffectPreset(id);
+    
+    if (!success) {
+      return res.status(404).json({ error: 'Effect preset not found' });
+    }
+    
+    res.status(204).end();
+  }));
+  
+  // Update preset usage (increment use count)
+  app.post('/api/effect-presets/:id/use', errorHandler(async (req, res) => {
+    const id = req.params.id;
+    
+    await storage.updateEffectPresetUsage(id);
+    res.status(200).json({ success: true });
+  }));
+  
+  // ===== EFFECT SETTING ROUTES =====
+  
+  // Create a new effect setting
+  app.post('/api/effect-settings', errorHandler(async (req, res) => {
+    const data = req.body;
+    
+    const result = insertEffectSettingSchema.safeParse(data);
+    if (!result.success) {
+      return res.status(400).json({ error: 'Invalid effect setting data', details: result.error });
+    }
+    
+    const setting = await storage.createEffectSetting(data);
+    res.status(201).json(setting);
+  }));
+  
+  // Get all effect settings for a user
+  app.get('/api/effect-settings', errorHandler(async (req, res) => {
+    const userId = Number(req.query.userId);
+    const settingKey = req.query.settingKey as string;
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+    
+    let settings;
+    if (settingKey) {
+      const setting = await storage.getEffectSettingByKey(userId, settingKey);
+      settings = setting ? [setting] : [];
+    } else {
+      settings = await storage.getEffectSettings(userId);
+    }
+    
+    res.json(settings);
+  }));
+  
+  // Update an effect setting
+  app.patch('/api/effect-settings/:id', errorHandler(async (req, res) => {
+    const id = req.params.id;
+    const { settingValue } = req.body;
+    
+    if (settingValue === undefined) {
+      return res.status(400).json({ error: 'Setting value is required' });
+    }
+    
+    const setting = await storage.updateEffectSetting(id, settingValue);
+    
+    if (!setting) {
+      return res.status(404).json({ error: 'Effect setting not found' });
+    }
+    
+    res.json(setting);
+  }));
+  
+  // Delete an effect setting
+  app.delete('/api/effect-settings/:id', errorHandler(async (req, res) => {
+    const id = req.params.id;
+    
+    const success = await storage.deleteEffectSetting(id);
+    
+    if (!success) {
+      return res.status(404).json({ error: 'Effect setting not found' });
+    }
+    
+    res.status(204).end();
+  }));
+  
+  // ===== EFFECT USAGE STATS ROUTES =====
+  
+  // Create a new effect usage record
+  app.post('/api/effect-usage-stats', errorHandler(async (req, res) => {
+    const data = req.body;
+    
+    const result = insertEffectUsageStatsSchema.safeParse(data);
+    if (!result.success) {
+      return res.status(400).json({ error: 'Invalid effect usage stats data', details: result.error });
+    }
+    
+    const stats = await storage.createEffectUsageStats(data);
+    res.status(201).json(stats);
+  }));
+  
+  // Get effect usage stats for a user
+  app.get('/api/effect-usage-stats', errorHandler(async (req, res) => {
+    const userId = Number(req.query.userId);
+    const effectType = req.query.effectType as string;
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+    
+    let stats;
+    if (effectType) {
+      stats = await storage.getEffectUsageStatsByEffect(userId, effectType);
+    } else {
+      stats = await storage.getEffectUsageStats(userId);
+    }
+    
+    res.json(stats);
   }));
 
   const httpServer = createServer(app);

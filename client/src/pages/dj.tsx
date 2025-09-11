@@ -13,6 +13,9 @@ import BPMDisplay from '@/components/dj/BPMDisplay';
 import CuePointControl from '@/components/dj/CuePointControl';
 import LoopControl from '@/components/dj/LoopControl';
 import TransportControls from '@/components/dj/TransportControls';
+import EqualizerPanel from '@/components/dj/EqualizerPanel';
+import EffectsRack from '@/components/dj/EffectsRack';
+import EffectPresets from '@/components/dj/EffectPresets';
 import SunoGenerator from '@/components/SunoGenerator';
 import MoodMenu from '@/components/MoodMenu';
 import MoodJourneyTracker from '@/components/MoodJourneyTracker';
@@ -445,6 +448,17 @@ export default function ProfessionalDJPage() {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Initialize mixer connections and default effects
+    mixer.deckA.connectTo(mixer.inputA);
+    mixer.deckB.connectTo(mixer.inputB);
+    mixer.connectToOutput();
+    
+    // Initialize default effects for each deck
+    mixer.deckA.initializeDefaultEffects();
+    mixer.deckB.initializeDefaultEffects();
+    
+    console.log('DJ Mixer initialized with professional effects system');
+
     // Set up event handlers for deck state updates
     mixer.deckA.onTimeUpdate((time) => {
       setDeckAState(prev => ({ ...prev, currentTime: time }));
@@ -614,6 +628,36 @@ export default function ProfessionalDJPage() {
               onVolumeChange={(volume) => setDeckAState(prev => ({ ...prev, volume }))}
               onPitchChange={(pitch) => setDeckAState(prev => ({ ...prev, pitchPercentage: pitch }))}
             />
+            
+            {/* Deck A Effects Section */}
+            <div className="space-y-3">
+              {/* EQ Panel */}
+              <EqualizerPanel
+                deck={mixer.deckA}
+                deckLabel="Deck A"
+                size="md"
+                showFrequencyResponse={true}
+                data-testid="eq-panel-deck-a"
+              />
+              
+              {/* Effects Rack */}
+              <EffectsRack
+                deck={mixer.deckA}
+                deckLabel="Deck A"
+                maxEffects={4}
+                showEQ={false}
+                data-testid="effects-rack-deck-a"
+              />
+              
+              {/* Effect Presets */}
+              <div className="flex justify-center">
+                <EffectPresets
+                  deck={mixer.deckA}
+                  deckLabel="Deck A"
+                  data-testid="effect-presets-deck-a"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Center - Mixer and Global Controls */}
@@ -645,6 +689,36 @@ export default function ProfessionalDJPage() {
               onVolumeChange={(volume) => setDeckBState(prev => ({ ...prev, volume }))}
               onPitchChange={(pitch) => setDeckBState(prev => ({ ...prev, pitchPercentage: pitch }))}
             />
+            
+            {/* Deck B Effects Section */}
+            <div className="space-y-3">
+              {/* EQ Panel */}
+              <EqualizerPanel
+                deck={mixer.deckB}
+                deckLabel="Deck B"
+                size="md"
+                showFrequencyResponse={true}
+                data-testid="eq-panel-deck-b"
+              />
+              
+              {/* Effects Rack */}
+              <EffectsRack
+                deck={mixer.deckB}
+                deckLabel="Deck B"
+                maxEffects={4}
+                showEQ={false}
+                data-testid="effects-rack-deck-b"
+              />
+              
+              {/* Effect Presets */}
+              <div className="flex justify-center">
+                <EffectPresets
+                  deck={mixer.deckB}
+                  deckLabel="Deck B"
+                  data-testid="effect-presets-deck-b"
+                />
+              </div>
+            </div>
           </div>
         </div>
 
