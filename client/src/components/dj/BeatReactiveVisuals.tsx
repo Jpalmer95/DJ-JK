@@ -648,7 +648,7 @@ export default function BeatReactiveVisuals({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm text-white/60 mb-2 block">
-                  Intensity: {visualControls.intensity.toFixed(1)}
+                  Intensity: {(visualControls.intensity ?? 1.0).toFixed(1)}
                 </label>
                 <Slider
                   value={[visualControls.intensity]}
@@ -662,7 +662,7 @@ export default function BeatReactiveVisuals({
               
               <div>
                 <label className="text-sm text-white/60 mb-2 block">
-                  Speed: {visualControls.speed.toFixed(1)}x
+                  Speed: {(visualControls.speed ?? 1.0).toFixed(1)}x
                 </label>
                 <Slider
                   value={[visualControls.speed]}
@@ -679,7 +679,7 @@ export default function BeatReactiveVisuals({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm text-white/60 mb-2 block">
-                  Sensitivity: {visualControls.sensitivity.toFixed(1)}
+                  Sensitivity: {(visualControls.sensitivity ?? 0.8).toFixed(1)}
                 </label>
                 <Slider
                   value={[visualControls.sensitivity]}
@@ -709,10 +709,10 @@ export default function BeatReactiveVisuals({
             {/* Glow Intensity */}
             <div>
               <label className="text-sm text-white/60 mb-2 block">
-                Glow Intensity: {visualControls.glowIntensity.toFixed(1)}
+                Glow Intensity: {(visualControls.glowIntensity ?? 0.8).toFixed(1)}
               </label>
               <Slider
-                value={[visualControls.glowIntensity]}
+                value={[visualControls.glowIntensity ?? 0.8]}
                 min={0}
                 max={2.0}
                 step={0.1}
