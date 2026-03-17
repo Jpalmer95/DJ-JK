@@ -610,17 +610,17 @@ export default function SpectrumAnalyzer({
   return (
     <div className={`spectrum-analyzer ${className}`}>
       {/* Main Spectrum Display */}
-      <Card className="bg-gray-900 border-gray-700">
+      <Card className="glass-panel neon-border">
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
-              <BarChart3 className="w-5 h-5 text-blue-400" />
+              <BarChart3 className="w-5 h-5 neon-text-cyan" />
               <h3 className="text-lg font-semibold text-white">Advanced Spectrum Analyzer</h3>
             </div>
             
             <div className="flex items-center space-x-2">
               {beatInfo && (
-                <div className="flex items-center space-x-2 text-sm text-gray-300">
+                <div className="flex items-center space-x-2 text-sm text-white/60">
                   <Activity className="w-4 h-4" />
                   <span>{beatInfo.bpm.toFixed(1)} BPM</span>
                   <span className="text-green-400">
@@ -664,7 +664,7 @@ export default function SpectrumAnalyzer({
             
             {!isAnalyzing && (
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-gray-500 text-center">
+                <div className="text-white/30 text-center">
                   <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-50" />
                   <p>Play audio to see spectrum analysis</p>
                 </div>
@@ -675,7 +675,7 @@ export default function SpectrumAnalyzer({
           {/* Waterfall Display */}
           {config.showWaterfall && (
             <div className="mt-4">
-              <div className="text-sm text-gray-400 mb-2">Spectral Waterfall</div>
+              <div className="text-sm text-white/40 mb-2">Spectral Waterfall</div>
               <div 
                 className="bg-black rounded-lg overflow-hidden"
                 style={{ width: `${width}px`, height: '150px' }}
@@ -692,7 +692,7 @@ export default function SpectrumAnalyzer({
           )}
 
           {/* Performance Stats */}
-          <div className="mt-4 flex justify-between text-xs text-gray-500">
+          <div className="mt-4 flex justify-between text-xs text-white/30">
             <span>FPS: {performanceStats.fps.toFixed(1)}</span>
             <span>Processing: {performanceStats.processingTime.toFixed(1)}ms</span>
             <span>Bars: {config.barCount}</span>
@@ -702,14 +702,14 @@ export default function SpectrumAnalyzer({
 
       {/* Settings Panel */}
       {showSettings && showControls && (
-        <Card className="mt-4 bg-gray-800 border-gray-600">
+        <Card className="mt-4 bg-black/30 border-white/10">
           <CardContent className="p-4 space-y-4">
             <h4 className="font-semibold text-white">Spectrum Settings</h4>
             
             <div className="grid grid-cols-2 gap-4">
               {/* Sensitivity */}
               <div>
-                <label className="text-sm text-gray-300 mb-2 block">
+                <label className="text-sm text-white/60 mb-2 block">
                   Sensitivity: {config.sensitivity.toFixed(1)}x
                 </label>
                 <Slider
@@ -724,7 +724,7 @@ export default function SpectrumAnalyzer({
 
               {/* Smoothing */}
               <div>
-                <label className="text-sm text-gray-300 mb-2 block">
+                <label className="text-sm text-white/60 mb-2 block">
                   Smoothing: {config.smoothing.toFixed(1)}
                 </label>
                 <Slider
@@ -739,7 +739,7 @@ export default function SpectrumAnalyzer({
 
               {/* Bar Count */}
               <div>
-                <label className="text-sm text-gray-300 mb-2 block">
+                <label className="text-sm text-white/60 mb-2 block">
                   Bars: {config.barCount}
                 </label>
                 <Slider
@@ -754,11 +754,11 @@ export default function SpectrumAnalyzer({
 
               {/* Color Mode */}
               <div>
-                <label className="text-sm text-gray-300 mb-2 block">Color Mode</label>
+                <label className="text-sm text-white/60 mb-2 block">Color Mode</label>
                 <select
                   value={config.colorMode}
                   onChange={(e) => handleConfigChange('colorMode', e.target.value)}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-1 text-white"
+                  className="w-full bg-black/40 border border-white/10 rounded px-3 py-1 text-white"
                   data-testid="select-spectrum-color-mode"
                 >
                   <option value="gradient">Gradient</option>
@@ -776,7 +776,7 @@ export default function SpectrumAnalyzer({
                   onCheckedChange={(checked) => handleConfigChange('logScale', checked)}
                   data-testid="switch-spectrum-log-scale"
                 />
-                <label className="text-sm text-gray-300">Log Scale</label>
+                <label className="text-sm text-white/60">Log Scale</label>
               </div>
 
               <div className="flex items-center space-x-2">
@@ -785,7 +785,7 @@ export default function SpectrumAnalyzer({
                   onCheckedChange={(checked) => handleConfigChange('showPeaks', checked)}
                   data-testid="switch-spectrum-peaks"
                 />
-                <label className="text-sm text-gray-300">Peak Holds</label>
+                <label className="text-sm text-white/60">Peak Holds</label>
               </div>
 
               <div className="flex items-center space-x-2">
@@ -794,7 +794,7 @@ export default function SpectrumAnalyzer({
                   onCheckedChange={(checked) => handleConfigChange('showWaterfall', checked)}
                   data-testid="switch-spectrum-waterfall"
                 />
-                <label className="text-sm text-gray-300">Waterfall</label>
+                <label className="text-sm text-white/60">Waterfall</label>
               </div>
 
               <div className="flex items-center space-x-2">
@@ -803,7 +803,7 @@ export default function SpectrumAnalyzer({
                   onCheckedChange={(checked) => handleConfigChange('beatReactive', checked)}
                   data-testid="switch-spectrum-beat-reactive"
                 />
-                <label className="text-sm text-gray-300">Beat Reactive</label>
+                <label className="text-sm text-white/60">Beat Reactive</label>
               </div>
             </div>
           </CardContent>

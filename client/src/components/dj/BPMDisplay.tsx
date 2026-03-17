@@ -188,20 +188,20 @@ export default function BPMDisplay({ deck, otherDeck, className = '' }: BPMDispl
   const keyCompatibility = getKeyCompatibility();
   
   return (
-    <Card className={`bg-gray-900 border-gray-700 ${className}`}>
+    <Card className={`glass-panel neon-border ${className}`}>
       <CardContent className="p-4 space-y-4">
         {/* BPM Display */}
         <div className="text-center">
           <div className="flex items-center justify-center space-x-2 mb-2">
-            <Music className="w-4 h-4 text-gray-400" />
-            <span className="text-sm text-gray-400 uppercase tracking-wide">BPM</span>
+            <Music className="w-4 h-4 text-cyan-400/60" />
+            <span className="text-sm text-cyan-400/60 uppercase tracking-wide">BPM</span>
             {deck.syncState.isSynced && (
               <Zap className="w-4 h-4 text-blue-400" title="Synced" />
             )}
           </div>
           
           {isAnalyzing ? (
-            <div className="text-2xl font-mono text-yellow-400 animate-pulse">
+            <div className="text-2xl font-mono text-magenta-400 animate-pulse neon-text-magenta">
               ANALYZING...
             </div>
           ) : isEditing ? (
@@ -209,7 +209,7 @@ export default function BPMDisplay({ deck, otherDeck, className = '' }: BPMDispl
               <Input
                 value={editValue}
                 onChange={(e) => setEditValue(e.target.value)}
-                className="w-20 text-center bg-gray-800 border-gray-600"
+                className="w-20 text-center bg-black/30 border-white/10"
                 type="number"
                 min="60"
                 max="200"
@@ -228,7 +228,7 @@ export default function BPMDisplay({ deck, otherDeck, className = '' }: BPMDispl
                 size="sm"
                 variant="outline"
                 onClick={handleBpmCancel}
-                className="border-gray-600"
+                className="border-white/10"
                 data-testid={`button-bpm-cancel-${deck.id.toLowerCase().replace(' ', '-')}`}
               >
                 <X className="w-4 h-4" />
@@ -236,7 +236,7 @@ export default function BPMDisplay({ deck, otherDeck, className = '' }: BPMDispl
             </div>
           ) : (
             <div 
-              className="text-4xl font-mono font-bold text-white cursor-pointer hover:text-blue-400 transition-colors"
+              className="text-4xl font-mono font-bold neon-text-cyan cursor-pointer hover:text-white transition-colors"
               onClick={handleBpmEdit}
               data-testid={`text-bpm-${deck.id.toLowerCase().replace(' ', '-')}`}
             >
@@ -249,7 +249,7 @@ export default function BPMDisplay({ deck, otherDeck, className = '' }: BPMDispl
               size="sm"
               variant="ghost"
               onClick={handleBpmEdit}
-              className="text-xs text-gray-400 hover:text-white"
+              className="text-xs text-white/40 hover:text-white"
               data-testid={`button-bpm-edit-${deck.id.toLowerCase().replace(' ', '-')}`}
             >
               <Edit2 className="w-3 h-3 mr-1" />
@@ -260,7 +260,7 @@ export default function BPMDisplay({ deck, otherDeck, className = '' }: BPMDispl
         
         {/* Detection Info */}
         {detectedBpm !== currentBpm && (
-          <div className="text-center text-xs text-gray-400">
+          <div className="text-center text-xs text-white/40">
             Detected: {detectedBpm.toFixed(1)} BPM
           </div>
         )}
@@ -269,7 +269,7 @@ export default function BPMDisplay({ deck, otherDeck, className = '' }: BPMDispl
         {otherDeck && otherDeck.trackInfo && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-400">Sync</span>
+              <span className="text-xs text-white/40">Sync</span>
               {deck.syncState.isSynced ? (
                 <Button
                   size="sm"
@@ -285,7 +285,7 @@ export default function BPMDisplay({ deck, otherDeck, className = '' }: BPMDispl
                   size="sm"
                   variant="outline"
                   onClick={handleSync}
-                  className="border-gray-600 text-gray-300 hover:bg-gray-800"
+                  className="border-white/10 text-white/60 hover:bg-black/30"
                   data-testid={`button-sync-${deck.id.toLowerCase().replace(' ', '-')}`}
                 >
                   <Lock className="w-3 h-3 mr-1" />
@@ -299,7 +299,7 @@ export default function BPMDisplay({ deck, otherDeck, className = '' }: BPMDispl
               <div className={`text-xs font-mono ${getBpmCompatibilityColor(bpmDifference)}`}>
                 {bpmDifference > 0 ? '+' : ''}{bpmDifference.toFixed(1)}%
               </div>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-white/30">
                 vs Other Deck
               </div>
             </div>
@@ -310,11 +310,11 @@ export default function BPMDisplay({ deck, otherDeck, className = '' }: BPMDispl
         {keyInfo && (
           <div className="space-y-2">
             <div className="text-center">
-              <div className="text-xs text-gray-400 mb-1">Key</div>
+              <div className="text-xs text-white/40 mb-1">Key</div>
               <div className="flex items-center justify-center space-x-2">
                 <Badge 
                   variant="outline" 
-                  className="bg-gray-800 border-gray-600 text-white"
+                  className="bg-black/30 border-white/10 text-white"
                   data-testid={`badge-key-${deck.id.toLowerCase().replace(' ', '-')}`}
                 >
                   {keyInfo.detected}
@@ -349,7 +349,7 @@ export default function BPMDisplay({ deck, otherDeck, className = '' }: BPMDispl
         
         {/* Pitch Rate Display */}
         <div className="text-center">
-          <div className="text-xs text-gray-400 mb-1">Pitch</div>
+          <div className="text-xs text-white/40 mb-1">Pitch</div>
           <div className="text-sm font-mono text-white">
             {deck.getPitchPercentage() > 0 ? '+' : ''}{deck.getPitchPercentage().toFixed(1)}%
           </div>
@@ -363,11 +363,11 @@ export default function BPMDisplay({ deck, otherDeck, className = '' }: BPMDispl
         
         {/* Beat Position Indicator */}
         <div className="text-center">
-          <div className="text-xs text-gray-400 mb-1">Beat</div>
+          <div className="text-xs text-white/40 mb-1">Beat</div>
           <div className="text-lg font-mono text-green-400" data-testid={`text-beat-${deck.id.toLowerCase().replace(' ', '-')}`}>
             {deck.currentBeat || 1}
           </div>
-          <div className="w-full bg-gray-700 rounded-full h-1 mt-1">
+          <div className="w-full bg-white/10 rounded-full h-1 mt-1">
             <div 
               className="bg-green-400 h-1 rounded-full transition-all duration-75"
               style={{ 

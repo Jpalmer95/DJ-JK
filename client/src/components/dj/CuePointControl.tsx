@@ -192,10 +192,10 @@ export default function CuePointControl({ deck, className = '' }: CuePointContro
   };
   
   return (
-    <Card className={`bg-gray-900 border-gray-700 ${className}`}>
+    <Card className={`glass-panel neon-border ${className}`}>
       <CardHeader className="pb-3">
         <CardTitle className="text-white text-lg flex items-center">
-          <Circle className="w-5 h-5 mr-2 text-red-500" />
+          <Circle className="w-5 h-5 mr-2 text-red-400" />
           Hot Cues
         </CardTitle>
       </CardHeader>
@@ -243,11 +243,11 @@ export default function CuePointControl({ deck, className = '' }: CuePointContro
         </div>
         
         {/* Cue Information Panel */}
-        <div className="bg-gray-800 rounded-lg p-3 space-y-2">
-          <div className="text-sm text-gray-400 text-center">
+        <div className="bg-black/30 rounded-lg p-3 space-y-2">
+          <div className="text-sm text-white/40 text-center">
             Cue Instructions
           </div>
-          <div className="text-xs text-gray-500 space-y-1">
+          <div className="text-xs text-white/30 space-y-1">
             <div>• Click empty slot to set cue at current time</div>
             <div>• Click set cue to jump to that position</div>
             <div>• Click X to clear a cue point</div>
@@ -261,7 +261,7 @@ export default function CuePointControl({ deck, className = '' }: CuePointContro
         
         {/* Active Cues Summary */}
         <div className="space-y-2">
-          <div className="text-sm text-gray-400">Active Cues ({hotCues.filter(cue => cue !== null).length}/8)</div>
+          <div className="text-sm text-white/40">Active Cues ({hotCues.filter(cue => cue !== null).length}/8)</div>
           <div className="flex flex-wrap gap-1">
             {hotCues.map((hotCue, index) => {
               if (!hotCue) return null;
@@ -292,7 +292,7 @@ export default function CuePointControl({ deck, className = '' }: CuePointContro
           <Button
             variant="outline"
             size="sm"
-            className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-800"
+            className="flex-1 border-white/10 text-white/60 hover:bg-black/30"
             onClick={async () => {
               // Clear all cues
               for (let i = 1; i <= 8; i++) {
@@ -315,7 +315,7 @@ export default function CuePointControl({ deck, className = '' }: CuePointContro
           <Button
             variant="outline"
             size="sm"
-            className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-800"
+            className="flex-1 border-white/10 text-white/60 hover:bg-black/30"
             onClick={() => {
               // Set cues at regular intervals (demo/auto-cue feature)
               const trackDuration = deck.duration;

@@ -248,10 +248,10 @@ export default function LoopControl({ deck, className = '' }: LoopControlProps) 
   };
   
   return (
-    <Card className={`bg-gray-900 border-gray-700 ${className}`}>
+    <Card className={`glass-panel neon-border ${className}`}>
       <CardHeader className="pb-3">
         <CardTitle className="text-white text-lg flex items-center">
-          <RefreshCw className="w-5 h-5 mr-2 text-green-500" />
+          <RefreshCw className="w-5 h-5 mr-2 text-green-400" />
           Loop Control
           {activeLoop && (
             <Badge className="ml-2 bg-green-600 text-white">
@@ -264,7 +264,7 @@ export default function LoopControl({ deck, className = '' }: LoopControlProps) 
         
         {/* Auto Loop Buttons */}
         <div className="space-y-2">
-          <div className="text-sm text-gray-400 text-center">Auto Loops (Beats)</div>
+          <div className="text-sm text-white/40 text-center">Auto Loops (Beats)</div>
           <div className="grid grid-cols-4 gap-2">
             {autoLoopSizes.map((beats) => (
               <Button
@@ -287,7 +287,7 @@ export default function LoopControl({ deck, className = '' }: LoopControlProps) 
         
         {/* Loop Roll Buttons */}
         <div className="space-y-2">
-          <div className="text-sm text-gray-400 text-center">Loop Roll</div>
+          <div className="text-sm text-white/40 text-center">Loop Roll</div>
           <div className="grid grid-cols-4 gap-2">
             {[0.25, 0.5, 1, 2].map((beats) => (
               <Button
@@ -311,7 +311,7 @@ export default function LoopControl({ deck, className = '' }: LoopControlProps) 
         
         {/* Manual Loop Controls */}
         <div className="space-y-2">
-          <div className="text-sm text-gray-400 text-center">Manual Loop</div>
+          <div className="text-sm text-white/40 text-center">Manual Loop</div>
           <div className="flex space-x-2">
             <Button
               variant={manualLoopIn !== null ? 'default' : 'outline'}
@@ -347,7 +347,7 @@ export default function LoopControl({ deck, className = '' }: LoopControlProps) 
           
           {/* Manual loop time display */}
           {(manualLoopIn !== null || manualLoopOut !== null) && (
-            <div className="text-xs text-gray-400 text-center space-y-1">
+            <div className="text-xs text-white/40 text-center space-y-1">
               {manualLoopIn !== null && (
                 <div>In: {formatTime(manualLoopIn)}</div>
               )}
@@ -360,7 +360,7 @@ export default function LoopControl({ deck, className = '' }: LoopControlProps) 
         
         {/* Active Loop Information */}
         {activeLoop && (
-          <div className="bg-gray-800 rounded-lg p-3 space-y-3">
+          <div className="bg-black/30 rounded-lg p-3 space-y-3">
             <div className="flex items-center justify-between">
               <div className="text-sm text-white font-semibold">
                 {activeLoop.name}
@@ -370,7 +370,7 @@ export default function LoopControl({ deck, className = '' }: LoopControlProps) 
                 className={`${
                   isInLoop() 
                     ? 'border-green-500 text-green-400' 
-                    : 'border-gray-500 text-gray-400'
+                    : 'border-white/20 text-white/40'
                 }`}
               >
                 {activeLoop.beatLength ? `${activeLoop.beatLength} beats` : 'Manual'}
@@ -379,11 +379,11 @@ export default function LoopControl({ deck, className = '' }: LoopControlProps) 
             
             {/* Loop Progress Bar */}
             <div className="space-y-1">
-              <div className="flex justify-between text-xs text-gray-400">
+              <div className="flex justify-between text-xs text-white/40">
                 <span>{formatTime(activeLoop.startTime)}</span>
                 <span>{formatTime(activeLoop.endTime)}</span>
               </div>
-              <div className="w-full bg-gray-700 rounded-full h-2">
+              <div className="w-full bg-white/10 rounded-full h-2">
                 <div 
                   className="bg-green-400 h-2 rounded-full transition-all duration-75"
                   style={{ width: `${getLoopProgress()}%` }}
@@ -432,21 +432,21 @@ export default function LoopControl({ deck, className = '' }: LoopControlProps) 
         )}
         
         {/* Loop Statistics */}
-        <div className="bg-gray-800 rounded-lg p-3">
-          <div className="text-sm text-gray-400 text-center mb-2">Loop Stats</div>
+        <div className="bg-black/30 rounded-lg p-3">
+          <div className="text-sm text-white/40 text-center mb-2">Loop Stats</div>
           <div className="grid grid-cols-3 gap-4 text-xs">
             <div className="text-center">
-              <div className="text-gray-400">Memory</div>
+              <div className="text-white/40">Memory</div>
               <div className="text-white font-mono">{deck.loops.length}</div>
             </div>
             <div className="text-center">
-              <div className="text-gray-400">Active</div>
+              <div className="text-white/40">Active</div>
               <div className="text-white font-mono">
                 {deck.loops.filter(loop => loop.isActive).length}
               </div>
             </div>
             <div className="text-center">
-              <div className="text-gray-400 flex items-center justify-center">
+              <div className="text-white/40 flex items-center justify-center">
                 <Database className="w-3 h-3 mr-1" />
                 DB
               </div>
@@ -462,7 +462,7 @@ export default function LoopControl({ deck, className = '' }: LoopControlProps) 
           <Button
             variant="outline"
             size="sm"
-            className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-800"
+            className="flex-1 border-white/10 text-white/60 hover:bg-black/30"
             onClick={() => {
               // Clear manual loop points
               setManualLoopIn(null);
@@ -477,7 +477,7 @@ export default function LoopControl({ deck, className = '' }: LoopControlProps) 
           <Button
             variant="outline"
             size="sm"
-            className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-800"
+            className="flex-1 border-white/10 text-white/60 hover:bg-black/30"
             onClick={() => {
               // Quick set loop at current position (4 beats)
               handleAutoLoop(4);
@@ -490,8 +490,8 @@ export default function LoopControl({ deck, className = '' }: LoopControlProps) 
         </div>
         
         {/* Loop Instructions */}
-        <div className="bg-gray-800 rounded-lg p-2">
-          <div className="text-xs text-gray-500 space-y-1">
+        <div className="bg-black/30 rounded-lg p-2">
+          <div className="text-xs text-white/30 space-y-1">
             <div>• Auto loops snap to beat grid</div>
             <div>• Loop roll returns to original position</div>
             <div>• Manual loops for custom sections</div>

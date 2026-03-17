@@ -589,21 +589,21 @@ export default function WaveformVisualizer({
   return (
     <div className="w-full relative" data-testid={`waveform-${deck?.id.toLowerCase().replace(' ', '-') || 'default'}`}>
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 rounded-md">
-          <div className="animate-pulse text-sm text-gray-300">Analyzing audio...</div>
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-md">
+          <div className="animate-pulse text-sm text-white/60">Analyzing audio...</div>
         </div>
       )}
       
       <canvas 
         ref={canvasRef} 
-        className={`w-full rounded-md cursor-pointer border border-gray-600 ${isPlaying ? 'ring-2 ring-blue-500' : ''}`}
+        className={`w-full rounded-md cursor-pointer border border-white/10 ${isPlaying ? 'ring-2 ring-blue-500' : ''}`}
         style={{ height: `${height}px` }}
         onClick={handleCanvasClick}
         data-testid={`canvas-waveform-${deck?.id.toLowerCase().replace(' ', '-') || 'default'}`}
       />
       
       {/* Professional DJ Waveform Legend */}
-      <div className="absolute top-1 right-1 text-xs text-gray-400 bg-black bg-opacity-50 px-2 py-1 rounded">
+      <div className="absolute top-1 right-1 text-xs text-white/40 bg-black bg-opacity-50 px-2 py-1 rounded">
         <div className="flex items-center space-x-3">
           <span className="flex items-center">
             <div className="w-2 h-2 bg-white mr-1"></div>

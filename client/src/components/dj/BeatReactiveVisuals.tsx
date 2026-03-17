@@ -522,12 +522,12 @@ export default function BeatReactiveVisuals({
 
   return (
     <div className={`beat-reactive-visuals ${className}`}>
-      <Card className="bg-gray-900 border-gray-700">
+      <Card className="glass-panel neon-border">
         <CardContent className="p-4">
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
-              <Sparkles className="w-5 h-5 text-purple-400" />
+              <Sparkles className="w-5 h-5 neon-text-magenta" />
               <h3 className="text-lg font-semibold text-white">Beat-Reactive Visuals</h3>
             </div>
             
@@ -536,8 +536,8 @@ export default function BeatReactiveVisuals({
               {beatInfo && isActive && (
                 <div className="flex items-center space-x-2 text-sm">
                   <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                  <span className="text-gray-300">{beatInfo.bpm.toFixed(0)} BPM</span>
-                  <div className="w-16 bg-gray-700 rounded-full h-1">
+                  <span className="text-white/60">{beatInfo.bpm.toFixed(0)} BPM</span>
+                  <div className="w-16 bg-white/10 rounded-full h-1">
                     <div 
                       className="bg-red-500 h-1 rounded-full transition-all duration-100"
                       style={{ width: `${beatInfo.beatPhase * 100}%` }}
@@ -588,7 +588,7 @@ export default function BeatReactiveVisuals({
             
             {!isActive && (
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-gray-500 text-center">
+                <div className="text-white/30 text-center">
                   <Zap className="w-12 h-12 mx-auto mb-2 opacity-50" />
                   <p>Click play to start beat-reactive visuals</p>
                 </div>
@@ -606,11 +606,11 @@ export default function BeatReactiveVisuals({
 
           {/* Preset Selection */}
           <div className="flex items-center space-x-4 mb-4">
-            <label className="text-sm text-gray-300 font-medium">Preset:</label>
+            <label className="text-sm text-white/60 font-medium">Preset:</label>
             <select
               value={currentPreset}
               onChange={(e) => handlePresetChange(e.target.value)}
-              className="bg-gray-800 border border-gray-600 rounded px-3 py-1 text-white text-sm"
+              className="bg-black/30 border border-white/10 rounded px-3 py-1 text-white text-sm"
               data-testid="select-visual-preset"
             >
               {visualPresets.map(preset => (
@@ -620,13 +620,13 @@ export default function BeatReactiveVisuals({
               ))}
             </select>
             
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-white/30">
               {visualPresets.find(p => p.id === currentPreset)?.description}
             </div>
           </div>
 
           {/* Performance Stats */}
-          <div className="flex justify-between text-xs text-gray-500">
+          <div className="flex justify-between text-xs text-white/30">
             <span>FPS: {performanceStats.fps.toFixed(1)}</span>
             <span>Particles: {performanceStats.particleCount}</span>
             <span>Effects: {performanceStats.effectCount}</span>
@@ -637,7 +637,7 @@ export default function BeatReactiveVisuals({
 
       {/* Advanced Settings Panel */}
       {showSettings && (
-        <Card className="mt-4 bg-gray-800 border-gray-600">
+        <Card className="mt-4 bg-black/30 border-white/10">
           <CardContent className="p-4 space-y-6">
             <h4 className="font-semibold text-white flex items-center space-x-2">
               <Settings className="w-4 h-4" />
@@ -647,7 +647,7 @@ export default function BeatReactiveVisuals({
             {/* Intensity and Speed */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm text-gray-300 mb-2 block">
+                <label className="text-sm text-white/60 mb-2 block">
                   Intensity: {visualControls.intensity.toFixed(1)}
                 </label>
                 <Slider
@@ -661,7 +661,7 @@ export default function BeatReactiveVisuals({
               </div>
               
               <div>
-                <label className="text-sm text-gray-300 mb-2 block">
+                <label className="text-sm text-white/60 mb-2 block">
                   Speed: {visualControls.speed.toFixed(1)}x
                 </label>
                 <Slider
@@ -678,7 +678,7 @@ export default function BeatReactiveVisuals({
             {/* Sensitivity and Particle Count */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm text-gray-300 mb-2 block">
+                <label className="text-sm text-white/60 mb-2 block">
                   Sensitivity: {visualControls.sensitivity.toFixed(1)}
                 </label>
                 <Slider
@@ -692,7 +692,7 @@ export default function BeatReactiveVisuals({
               </div>
               
               <div>
-                <label className="text-sm text-gray-300 mb-2 block">
+                <label className="text-sm text-white/60 mb-2 block">
                   Particles: {visualControls.particleCount}
                 </label>
                 <Slider
@@ -708,7 +708,7 @@ export default function BeatReactiveVisuals({
 
             {/* Glow Intensity */}
             <div>
-              <label className="text-sm text-gray-300 mb-2 block">
+              <label className="text-sm text-white/60 mb-2 block">
                 Glow Intensity: {visualControls.glowIntensity.toFixed(1)}
               </label>
               <Slider
@@ -729,7 +729,7 @@ export default function BeatReactiveVisuals({
                   onCheckedChange={(checked) => handleControlChange('beatReactive', checked)}
                   data-testid="switch-beat-reactive"
                 />
-                <label className="text-sm text-gray-300">Beat Reactive</label>
+                <label className="text-sm text-white/60">Beat Reactive</label>
               </div>
               
               <div className="flex items-center space-x-2">
@@ -738,7 +738,7 @@ export default function BeatReactiveVisuals({
                   onCheckedChange={(checked) => handleControlChange('colorCycling', checked)}
                   data-testid="switch-color-cycling"
                 />
-                <label className="text-sm text-gray-300">Color Cycling</label>
+                <label className="text-sm text-white/60">Color Cycling</label>
               </div>
               
               <div className="flex items-center space-x-2">
@@ -747,7 +747,7 @@ export default function BeatReactiveVisuals({
                   onCheckedChange={(checked) => handleControlChange('showBeatIndicators', checked)}
                   data-testid="switch-beat-indicators"
                 />
-                <label className="text-sm text-gray-300">Beat Indicators</label>
+                <label className="text-sm text-white/60">Beat Indicators</label>
               </div>
               
               <div className="flex items-center space-x-2">
@@ -756,7 +756,7 @@ export default function BeatReactiveVisuals({
                   onCheckedChange={(checked) => handleControlChange('showEnergyFlow', checked)}
                   data-testid="switch-energy-flow"
                 />
-                <label className="text-sm text-gray-300">Energy Flow</label>
+                <label className="text-sm text-white/60">Energy Flow</label>
               </div>
               
               <div className="flex items-center space-x-2">
@@ -765,13 +765,13 @@ export default function BeatReactiveVisuals({
                   onCheckedChange={(checked) => handleControlChange('showFrequencyBands', checked)}
                   data-testid="switch-frequency-bands"
                 />
-                <label className="text-sm text-gray-300">Frequency Bands</label>
+                <label className="text-sm text-white/60">Frequency Bands</label>
               </div>
             </div>
 
             {/* Preset Actions */}
-            <div className="pt-4 border-t border-gray-700">
-              <h5 className="text-sm font-medium text-gray-300 mb-3">Preset Actions</h5>
+            <div className="pt-4 border-t border-white/10">
+              <h5 className="text-sm font-medium text-white/60 mb-3">Preset Actions</h5>
               <div className="flex space-x-2">
                 <Button 
                   size="sm" 

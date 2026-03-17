@@ -336,11 +336,11 @@ export default function VisualizationControls({
 
   return (
     <div className={`visualization-controls ${className}`}>
-      <Card className="bg-gray-900 border-gray-700">
+      <Card className="glass-panel neon-border">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <Settings2 className="w-5 h-5 text-blue-400" />
+              <Settings2 className="w-5 h-5 text-cyan-400" />
               <span>Visualization Controls</span>
             </div>
             
@@ -361,7 +361,7 @@ export default function VisualizationControls({
                   onCheckedChange={setAutoSave}
                   data-testid="switch-auto-save"
                 />
-                <span className="text-xs text-gray-400">Auto-save</span>
+                <span className="text-xs text-white/40">Auto-save</span>
               </div>
             </div>
           </CardTitle>
@@ -369,7 +369,7 @@ export default function VisualizationControls({
         
         <CardContent className="p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-5 bg-gray-800">
+            <TabsList className="grid w-full grid-cols-5 bg-black/30">
               <TabsTrigger value="theme" className="text-xs">
                 <Palette className="w-4 h-4 mr-1" />
                 Theme
@@ -396,7 +396,7 @@ export default function VisualizationControls({
             <TabsContent value="theme" className="space-y-6">
               {/* Color Theme Selection */}
               <div>
-                <label className="text-sm font-medium text-gray-300 mb-3 block">Color Themes</label>
+                <label className="text-sm font-medium text-white/60 mb-3 block">Color Themes</label>
                 <div className="grid grid-cols-2 gap-3">
                   {COLOR_THEMES.map(theme => (
                     <Button
@@ -423,7 +423,7 @@ export default function VisualizationControls({
               {/* Custom Colors */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm text-gray-300 mb-2 block">Primary Color</label>
+                  <label className="text-sm text-white/60 mb-2 block">Primary Color</label>
                   <div className="flex items-center space-x-2">
                     <input
                       type="color"
@@ -432,7 +432,7 @@ export default function VisualizationControls({
                         ...currentSettings.theme,
                         primaryColor: e.target.value
                       })}
-                      className="w-8 h-8 rounded border-2 border-gray-600"
+                      className="w-8 h-8 rounded border-2 border-white/10"
                       data-testid="input-primary-color"
                     />
                     <input
@@ -442,14 +442,14 @@ export default function VisualizationControls({
                         ...currentSettings.theme,
                         primaryColor: e.target.value
                       })}
-                      className="flex-1 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs text-white"
+                      className="flex-1 bg-black/30 border border-white/10 rounded px-2 py-1 text-xs text-white"
                       data-testid="input-primary-color-hex"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-sm text-gray-300 mb-2 block">Secondary Color</label>
+                  <label className="text-sm text-white/60 mb-2 block">Secondary Color</label>
                   <div className="flex items-center space-x-2">
                     <input
                       type="color"
@@ -458,7 +458,7 @@ export default function VisualizationControls({
                         ...currentSettings.theme,
                         secondaryColor: e.target.value
                       })}
-                      className="w-8 h-8 rounded border-2 border-gray-600"
+                      className="w-8 h-8 rounded border-2 border-white/10"
                       data-testid="input-secondary-color"
                     />
                     <input
@@ -468,14 +468,14 @@ export default function VisualizationControls({
                         ...currentSettings.theme,
                         secondaryColor: e.target.value
                       })}
-                      className="flex-1 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs text-white"
+                      className="flex-1 bg-black/30 border border-white/10 rounded px-2 py-1 text-xs text-white"
                       data-testid="input-secondary-color-hex"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-sm text-gray-300 mb-2 block">Accent Color</label>
+                  <label className="text-sm text-white/60 mb-2 block">Accent Color</label>
                   <div className="flex items-center space-x-2">
                     <input
                       type="color"
@@ -484,7 +484,7 @@ export default function VisualizationControls({
                         ...currentSettings.theme,
                         accentColor: e.target.value
                       })}
-                      className="w-8 h-8 rounded border-2 border-gray-600"
+                      className="w-8 h-8 rounded border-2 border-white/10"
                       data-testid="input-accent-color"
                     />
                     <input
@@ -494,14 +494,14 @@ export default function VisualizationControls({
                         ...currentSettings.theme,
                         accentColor: e.target.value
                       })}
-                      className="flex-1 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs text-white"
+                      className="flex-1 bg-black/30 border border-white/10 rounded px-2 py-1 text-xs text-white"
                       data-testid="input-accent-color-hex"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-sm text-gray-300 mb-2 block">Background</label>
+                  <label className="text-sm text-white/60 mb-2 block">Background</label>
                   <div className="flex items-center space-x-2">
                     <input
                       type="color"
@@ -510,7 +510,7 @@ export default function VisualizationControls({
                         ...currentSettings.theme,
                         backgroundColor: e.target.value
                       })}
-                      className="w-8 h-8 rounded border-2 border-gray-600"
+                      className="w-8 h-8 rounded border-2 border-white/10"
                       data-testid="input-background-color"
                     />
                     <input
@@ -520,7 +520,7 @@ export default function VisualizationControls({
                         ...currentSettings.theme,
                         backgroundColor: e.target.value
                       })}
-                      className="flex-1 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs text-white"
+                      className="flex-1 bg-black/30 border border-white/10 rounded px-2 py-1 text-xs text-white"
                       data-testid="input-background-color-hex"
                     />
                   </div>
@@ -530,7 +530,7 @@ export default function VisualizationControls({
               {/* Color Properties */}
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="text-sm text-gray-300 mb-2 block">
+                  <label className="text-sm text-white/60 mb-2 block">
                     Saturation: {currentSettings.theme.saturation.toFixed(1)}
                   </label>
                   <Slider
@@ -547,7 +547,7 @@ export default function VisualizationControls({
                 </div>
 
                 <div>
-                  <label className="text-sm text-gray-300 mb-2 block">
+                  <label className="text-sm text-white/60 mb-2 block">
                     Brightness: {currentSettings.theme.brightness.toFixed(1)}
                   </label>
                   <Slider
@@ -564,7 +564,7 @@ export default function VisualizationControls({
                 </div>
 
                 <div>
-                  <label className="text-sm text-gray-300 mb-2 block">
+                  <label className="text-sm text-white/60 mb-2 block">
                     Contrast: {currentSettings.theme.contrast.toFixed(1)}
                   </label>
                   <Slider
@@ -587,7 +587,7 @@ export default function VisualizationControls({
               {/* Particles */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-medium text-gray-300">Particle System</h4>
+                  <h4 className="font-medium text-white/60">Particle System</h4>
                   <Switch
                     checked={currentSettings.effects.particles.enabled}
                     onCheckedChange={(checked) => onSettingsChange('effects', {
@@ -599,9 +599,9 @@ export default function VisualizationControls({
                 </div>
                 
                 {currentSettings.effects.particles.enabled && (
-                  <div className="grid grid-cols-2 gap-4 pl-4 border-l-2 border-gray-700">
+                  <div className="grid grid-cols-2 gap-4 pl-4 border-l-2 border-white/5">
                     <div>
-                      <label className="text-sm text-gray-400 mb-1 block">
+                      <label className="text-sm text-white/40 mb-1 block">
                         Count: {currentSettings.effects.particles.count}
                       </label>
                       <Slider
@@ -618,7 +618,7 @@ export default function VisualizationControls({
                     </div>
 
                     <div>
-                      <label className="text-sm text-gray-400 mb-1 block">
+                      <label className="text-sm text-white/40 mb-1 block">
                         Size: {currentSettings.effects.particles.size}
                       </label>
                       <Slider
@@ -635,7 +635,7 @@ export default function VisualizationControls({
                     </div>
 
                     <div>
-                      <label className="text-sm text-gray-400 mb-1 block">
+                      <label className="text-sm text-white/40 mb-1 block">
                         Speed: {currentSettings.effects.particles.speed}
                       </label>
                       <Slider
@@ -652,7 +652,7 @@ export default function VisualizationControls({
                     </div>
 
                     <div>
-                      <label className="text-sm text-gray-400 mb-1 block">Shape</label>
+                      <label className="text-sm text-white/40 mb-1 block">Shape</label>
                       <Select
                         value={currentSettings.effects.particles.shape}
                         onValueChange={(value) => onSettingsChange('effects', {
@@ -660,10 +660,10 @@ export default function VisualizationControls({
                           particles: { ...currentSettings.effects.particles, shape: value as any }
                         })}
                       >
-                        <SelectTrigger className="bg-gray-800 border-gray-600" data-testid="select-particle-shape">
+                        <SelectTrigger className="bg-black/30 border-white/10" data-testid="select-particle-shape">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="bg-gray-800 border-gray-600">
+                        <SelectContent className="bg-black/30 border-white/10">
                           <SelectItem value="circle">Circle</SelectItem>
                           <SelectItem value="square">Square</SelectItem>
                           <SelectItem value="triangle">Triangle</SelectItem>
@@ -679,7 +679,7 @@ export default function VisualizationControls({
               {/* Spectrum Analyzer */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-medium text-gray-300">Spectrum Analyzer</h4>
+                  <h4 className="font-medium text-white/60">Spectrum Analyzer</h4>
                   <Switch
                     checked={currentSettings.effects.spectrum.enabled}
                     onCheckedChange={(checked) => onSettingsChange('effects', {
@@ -691,9 +691,9 @@ export default function VisualizationControls({
                 </div>
                 
                 {currentSettings.effects.spectrum.enabled && (
-                  <div className="grid grid-cols-2 gap-4 pl-4 border-l-2 border-gray-700">
+                  <div className="grid grid-cols-2 gap-4 pl-4 border-l-2 border-white/5">
                     <div>
-                      <label className="text-sm text-gray-400 mb-1 block">
+                      <label className="text-sm text-white/40 mb-1 block">
                         Bars: {currentSettings.effects.spectrum.bars}
                       </label>
                       <Slider
@@ -710,7 +710,7 @@ export default function VisualizationControls({
                     </div>
 
                     <div>
-                      <label className="text-sm text-gray-400 mb-1 block">
+                      <label className="text-sm text-white/40 mb-1 block">
                         Smoothing: {currentSettings.effects.spectrum.smoothing.toFixed(1)}
                       </label>
                       <Slider
@@ -735,7 +735,7 @@ export default function VisualizationControls({
                         })}
                         data-testid="switch-spectrum-log-scale"
                       />
-                      <label className="text-sm text-gray-400">Log Scale</label>
+                      <label className="text-sm text-white/40">Log Scale</label>
                     </div>
 
                     <div className="flex items-center space-x-2">
@@ -747,7 +747,7 @@ export default function VisualizationControls({
                         })}
                         data-testid="switch-spectrum-peak-hold"
                       />
-                      <label className="text-sm text-gray-400">Peak Hold</label>
+                      <label className="text-sm text-white/40">Peak Hold</label>
                     </div>
                   </div>
                 )}
@@ -756,7 +756,7 @@ export default function VisualizationControls({
               {/* 3D Visual Effects */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-medium text-gray-300">3D Effects</h4>
+                  <h4 className="font-medium text-white/60">3D Effects</h4>
                   <Switch
                     checked={currentSettings.effects.visual3d.enabled}
                     onCheckedChange={(checked) => onSettingsChange('effects', {
@@ -768,9 +768,9 @@ export default function VisualizationControls({
                 </div>
                 
                 {currentSettings.effects.visual3d.enabled && (
-                  <div className="grid grid-cols-2 gap-4 pl-4 border-l-2 border-gray-700">
+                  <div className="grid grid-cols-2 gap-4 pl-4 border-l-2 border-white/5">
                     <div>
-                      <label className="text-sm text-gray-400 mb-1 block">Type</label>
+                      <label className="text-sm text-white/40 mb-1 block">Type</label>
                       <Select
                         value={currentSettings.effects.visual3d.type}
                         onValueChange={(value) => onSettingsChange('effects', {
@@ -778,10 +778,10 @@ export default function VisualizationControls({
                           visual3d: { ...currentSettings.effects.visual3d, type: value as any }
                         })}
                       >
-                        <SelectTrigger className="bg-gray-800 border-gray-600" data-testid="select-3d-type">
+                        <SelectTrigger className="bg-black/30 border-white/10" data-testid="select-3d-type">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="bg-gray-800 border-gray-600">
+                        <SelectContent className="bg-black/30 border-white/10">
                           <SelectItem value="tunnel">Tunnel</SelectItem>
                           <SelectItem value="plasma">Plasma</SelectItem>
                           <SelectItem value="kaleidoscope">Kaleidoscope</SelectItem>
@@ -791,7 +791,7 @@ export default function VisualizationControls({
                     </div>
 
                     <div>
-                      <label className="text-sm text-gray-400 mb-1 block">
+                      <label className="text-sm text-white/40 mb-1 block">
                         Intensity: {currentSettings.effects.visual3d.intensity.toFixed(1)}
                       </label>
                       <Slider
@@ -815,7 +815,7 @@ export default function VisualizationControls({
             <TabsContent value="reactivity" className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm text-gray-300 mb-2 block">
+                  <label className="text-sm text-white/60 mb-2 block">
                     Beat Sensitivity: {currentSettings.reactivity.beatSensitivity.toFixed(1)}
                   </label>
                   <Slider
@@ -832,7 +832,7 @@ export default function VisualizationControls({
                 </div>
 
                 <div>
-                  <label className="text-sm text-gray-300 mb-2 block">
+                  <label className="text-sm text-white/60 mb-2 block">
                     Frequency Sensitivity: {currentSettings.reactivity.frequencySensitivity.toFixed(1)}
                   </label>
                   <Slider
@@ -849,7 +849,7 @@ export default function VisualizationControls({
                 </div>
 
                 <div>
-                  <label className="text-sm text-gray-300 mb-2 block">
+                  <label className="text-sm text-white/60 mb-2 block">
                     Energy Threshold: {currentSettings.reactivity.energyThreshold.toFixed(1)}
                   </label>
                   <Slider
@@ -876,7 +876,7 @@ export default function VisualizationControls({
                     })}
                     data-testid="switch-beat-prediction"
                   />
-                  <label className="text-sm text-gray-300">Beat Prediction</label>
+                  <label className="text-sm text-white/60">Beat Prediction</label>
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -888,7 +888,7 @@ export default function VisualizationControls({
                     })}
                     data-testid="switch-auto-adjust"
                   />
-                  <label className="text-sm text-gray-300">Auto Adjust</label>
+                  <label className="text-sm text-white/60">Auto Adjust</label>
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -900,7 +900,7 @@ export default function VisualizationControls({
                     })}
                     data-testid="switch-transient-detection"
                   />
-                  <label className="text-sm text-gray-300">Transient Detection</label>
+                  <label className="text-sm text-white/60">Transient Detection</label>
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -912,7 +912,7 @@ export default function VisualizationControls({
                     })}
                     data-testid="switch-key-sync"
                   />
-                  <label className="text-sm text-gray-300">Key Sync</label>
+                  <label className="text-sm text-white/60">Key Sync</label>
                 </div>
               </div>
             </TabsContent>
@@ -921,7 +921,7 @@ export default function VisualizationControls({
             <TabsContent value="performance" className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm text-gray-300 mb-2 block">Quality</label>
+                  <label className="text-sm text-white/60 mb-2 block">Quality</label>
                   <Select
                     value={currentSettings.performance.quality}
                     onValueChange={(value) => onSettingsChange('performance', {
@@ -929,10 +929,10 @@ export default function VisualizationControls({
                       quality: value as any
                     })}
                   >
-                    <SelectTrigger className="bg-gray-800 border-gray-600" data-testid="select-quality">
+                    <SelectTrigger className="bg-black/30 border-white/10" data-testid="select-quality">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-600">
+                    <SelectContent className="bg-black/30 border-white/10">
                       <SelectItem value="low">Low (Better Performance)</SelectItem>
                       <SelectItem value="medium">Medium</SelectItem>
                       <SelectItem value="high">High</SelectItem>
@@ -942,7 +942,7 @@ export default function VisualizationControls({
                 </div>
 
                 <div>
-                  <label className="text-sm text-gray-300 mb-2 block">
+                  <label className="text-sm text-white/60 mb-2 block">
                     Target FPS: {currentSettings.performance.targetFps}
                   </label>
                   <Slider
@@ -969,7 +969,7 @@ export default function VisualizationControls({
                     })}
                     data-testid="switch-webgl"
                   />
-                  <label className="text-sm text-gray-300">WebGL</label>
+                  <label className="text-sm text-white/60">WebGL</label>
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -981,7 +981,7 @@ export default function VisualizationControls({
                     })}
                     data-testid="switch-post-processing"
                   />
-                  <label className="text-sm text-gray-300">Post Processing</label>
+                  <label className="text-sm text-white/60">Post Processing</label>
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -993,7 +993,7 @@ export default function VisualizationControls({
                     })}
                     data-testid="switch-bloom"
                   />
-                  <label className="text-sm text-gray-300">Bloom Effect</label>
+                  <label className="text-sm text-white/60">Bloom Effect</label>
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -1005,7 +1005,7 @@ export default function VisualizationControls({
                     })}
                     data-testid="switch-antialiasing"
                   />
-                  <label className="text-sm text-gray-300">Anti-Aliasing</label>
+                  <label className="text-sm text-white/60">Anti-Aliasing</label>
                 </div>
               </div>
 
@@ -1034,7 +1034,7 @@ export default function VisualizationControls({
                     })}
                     data-testid="switch-beat-indicator"
                   />
-                  <label className="text-sm text-gray-300">Beat Indicator</label>
+                  <label className="text-sm text-white/60">Beat Indicator</label>
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -1046,7 +1046,7 @@ export default function VisualizationControls({
                     })}
                     data-testid="switch-bpm-counter"
                   />
-                  <label className="text-sm text-gray-300">BPM Counter</label>
+                  <label className="text-sm text-white/60">BPM Counter</label>
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -1058,7 +1058,7 @@ export default function VisualizationControls({
                     })}
                     data-testid="switch-frequency-bands"
                   />
-                  <label className="text-sm text-gray-300">Frequency Bands</label>
+                  <label className="text-sm text-white/60">Frequency Bands</label>
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -1070,7 +1070,7 @@ export default function VisualizationControls({
                     })}
                     data-testid="switch-energy-meter"
                   />
-                  <label className="text-sm text-gray-300">Energy Meter</label>
+                  <label className="text-sm text-white/60">Energy Meter</label>
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -1082,22 +1082,22 @@ export default function VisualizationControls({
                     })}
                     data-testid="switch-performance-stats"
                   />
-                  <label className="text-sm text-gray-300">Performance Stats</label>
+                  <label className="text-sm text-white/60">Performance Stats</label>
                 </div>
               </div>
             </TabsContent>
           </Tabs>
 
           {/* Preset Management */}
-          <div className="mt-8 pt-6 border-t border-gray-700">
-            <h4 className="font-medium text-gray-300 mb-4">Preset Management</h4>
+          <div className="mt-8 pt-6 border-t border-white/5">
+            <h4 className="font-medium text-white/60 mb-4">Preset Management</h4>
             <div className="flex items-center space-x-2 mb-4">
               <input
                 type="text"
                 value={presetName}
                 onChange={(e) => setPresetName(e.target.value)}
                 placeholder="Preset name..."
-                className="flex-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white text-sm"
+                className="flex-1 bg-black/30 border border-white/10 rounded px-3 py-2 text-white text-sm"
                 data-testid="input-preset-name"
               />
               <Button size="sm" onClick={saveSettings} data-testid="button-save-preset">
@@ -1131,7 +1131,7 @@ export default function VisualizationControls({
             </div>
             
             {lastSaved && (
-              <div className="text-xs text-gray-500 mt-2">
+              <div className="text-xs text-white/30 mt-2">
                 Last saved: {lastSaved.toLocaleTimeString()}
               </div>
             )}

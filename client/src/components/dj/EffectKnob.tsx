@@ -88,10 +88,10 @@ export default function EffectKnob({
   // Color configurations
   const colorConfig = {
     blue: {
-      ring: 'ring-blue-500',
-      dot: 'bg-blue-400',
-      glow: 'shadow-blue-500/50',
-      activeGlow: 'shadow-blue-500/75'
+      ring: 'ring-cyan-400',
+      dot: 'bg-cyan-400',
+      glow: 'shadow-cyan-400/50',
+      activeGlow: 'shadow-cyan-400/75'
     },
     green: {
       ring: 'ring-green-500',
@@ -291,7 +291,7 @@ export default function EffectKnob({
   return (
     <div className={cn('flex flex-col items-center', config.spacing)} data-testid={testId}>
       {/* Label */}
-      <div className={cn('text-gray-300 font-medium text-center leading-tight', config.text)}>
+      <div className={cn('text-white/60 font-medium text-center leading-tight', config.text)}>
         {label}
       </div>
       
@@ -302,10 +302,10 @@ export default function EffectKnob({
           ref={knobRef}
           className={cn(
             'relative rounded-full cursor-pointer select-none transition-all duration-75',
-            'bg-gradient-to-b from-gray-700 to-gray-900',
-            'border-2 border-gray-600',
+            'bg-gradient-to-b from-white/10 to-black/50',
+            'border-2 border-white/10',
             config.knob,
-            disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-gray-500',
+            disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-white/20',
             isDragging ? cn('ring-2', colors.ring, 'shadow-lg', colors.activeGlow) : colors.glow
           )}
           onMouseDown={handleMouseDown}
@@ -324,8 +324,8 @@ export default function EffectKnob({
           <div
             className={cn(
               'absolute inset-2 rounded-full',
-              'bg-gradient-to-b from-gray-800 to-gray-700',
-              'border border-gray-500',
+              'bg-gradient-to-b from-white/5 to-black/30',
+              'border border-white/10',
               config.inner
             )}
           >
@@ -371,7 +371,7 @@ export default function EffectKnob({
         <div className="absolute inset-0 pointer-events-none">
           {/* Min marker */}
           <div
-            className="absolute w-0.5 h-2 bg-gray-500"
+            className="absolute w-0.5 h-2 bg-white/20"
             style={{
               top: '50%',
               left: '50%',
@@ -381,7 +381,7 @@ export default function EffectKnob({
           />
           {/* Max marker */}
           <div
-            className="absolute w-0.5 h-2 bg-gray-500"
+            className="absolute w-0.5 h-2 bg-white/20"
             style={{
               top: '50%',
               left: '50%',
@@ -397,7 +397,7 @@ export default function EffectKnob({
         <div className={cn(
           'text-center font-mono font-semibold',
           config.text,
-          isDragging ? colors.dot.replace('bg-', 'text-') : 'text-gray-300'
+          isDragging ? colors.dot.replace('bg-', 'text-') : 'text-white/60'
         )}>
           {formatValue(value)}
         </div>
@@ -412,7 +412,7 @@ export default function EffectKnob({
         
         {/* Disabled indicator */}
         {disabled && (
-          <div className="w-1 h-1 rounded-full bg-gray-600" />
+          <div className="w-1 h-1 rounded-full bg-white/15" />
         )}
       </div>
     </div>

@@ -78,7 +78,7 @@ const LevelMeter = ({ trackId, trackName, levelData, className }: LevelMeterProp
       <div className="text-xs font-medium text-center">{trackName}</div>
       
       {/* Visual level meter */}
-      <div className="relative w-8 h-32 bg-gray-900 rounded border border-gray-700">
+      <div className="relative w-8 h-32 bg-black/40 rounded border border-white/10">
         {/* Peak meter */}
         <div 
           ref={peakRef}
@@ -103,8 +103,8 @@ const LevelMeter = ({ trackId, trackName, levelData, className }: LevelMeterProp
           <div className="absolute w-full h-px bg-green-500 opacity-50" style={{ top: '50%' }}>
             <span className="absolute right-0 -top-2 text-xs text-green-400">-12</span>
           </div>
-          <div className="absolute w-full h-px bg-gray-500 opacity-50" style={{ top: '75%' }}>
-            <span className="absolute right-0 -top-2 text-xs text-gray-400">-18</span>
+          <div className="absolute w-full h-px bg-white/20 opacity-50" style={{ top: '75%' }}>
+            <span className="absolute right-0 -top-2 text-xs text-white/40">-18</span>
           </div>
         </div>
         
@@ -121,7 +121,7 @@ const LevelMeter = ({ trackId, trackName, levelData, className }: LevelMeterProp
         <div className="text-white">
           {levelData ? `${levelData.peakDb.toFixed(1)}dB` : '--dB'}
         </div>
-        <div className="text-gray-400">
+        <div className="text-white/40">
           {levelData ? `${levelData.rmsDb.toFixed(1)}` : '--'}
         </div>
       </div>
@@ -384,7 +384,7 @@ export const SessionRecorder = ({ mixer, onSessionComplete, className }: Session
               <span className="text-sm font-medium">Recording Levels</span>
             </div>
             
-            <div className="flex items-end justify-center space-x-6 p-4 bg-gray-950 rounded-lg">
+            <div className="flex items-end justify-center space-x-6 p-4 bg-black/50 rounded-lg">
               {config.enableMasterTrack && (
                 <LevelMeter
                   trackId="master"
@@ -412,7 +412,7 @@ export const SessionRecorder = ({ mixer, onSessionComplete, className }: Session
         
         {/* Configuration Panel */}
         {isConfigExpanded && (
-          <div className="space-y-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+          <div className="space-y-6 p-4 bg-black/40 rounded-lg">
             {/* Session Metadata */}
             <div className="space-y-4">
               <h3 className="text-sm font-semibold">Session Information</h3>
@@ -557,7 +557,7 @@ export const SessionRecorder = ({ mixer, onSessionComplete, className }: Session
                 </Button>
                 
                 {showAdvancedSettings && (
-                  <div className="space-y-3 p-3 bg-gray-100 dark:bg-gray-800 rounded">
+                  <div className="space-y-3 p-3 bg-black/30 rounded">
                     <div className="space-y-2">
                       <Label htmlFor="target-level">Target Level (dB)</Label>
                       <Select
@@ -576,7 +576,7 @@ export const SessionRecorder = ({ mixer, onSessionComplete, className }: Session
                     </div>
                     
                     {/* Quality Information */}
-                    <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                    <div className="text-xs text-white/40 space-y-1">
                       <div>Format: {currentQuality.mimeType}</div>
                       <div>Sample Rate: {currentQuality.sampleRate / 1000}kHz</div>
                       <div>Bit Depth: {currentQuality.bitDepth}-bit</div>

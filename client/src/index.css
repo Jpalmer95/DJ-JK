@@ -4,55 +4,41 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 20 14.3% 4.1%;
-    --muted: 60 4.8% 95.9%;
-    --muted-foreground: 25 5.3% 44.7%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 20 14.3% 4.1%;
-    --card: 0 0% 100%;
-    --card-foreground: 20 14.3% 4.1%;
-    --border: 20 5.9% 90%;
-    --input: 20 5.9% 90%;
-    --primary: 207 90% 54%;
-    --primary-foreground: 211 100% 99%;
-    --secondary: 60 4.8% 95.9%;
-    --secondary-foreground: 24 9.8% 10%;
-    --accent: 60 4.8% 95.9%;
-    --accent-foreground: 24 9.8% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 60 9.1% 97.8%;
-    --ring: 20 14.3% 4.1%;
-    --radius: 0.5rem;
+    --background: 240 15% 5%;
+    --foreground: 210 40% 95%;
+    --muted: 240 10% 12%;
+    --muted-foreground: 240 5% 55%;
+    --popover: 240 15% 8%;
+    --popover-foreground: 210 40% 95%;
+    --card: 240 15% 8%;
+    --card-foreground: 210 40% 95%;
+    --border: 240 10% 18%;
+    --input: 240 10% 18%;
+    --primary: 190 100% 50%;
+    --primary-foreground: 240 15% 5%;
+    --secondary: 280 100% 60%;
+    --secondary-foreground: 210 40% 98%;
+    --accent: 320 100% 55%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 85% 55%;
+    --destructive-foreground: 210 40% 98%;
+    --ring: 190 100% 50%;
+    --radius: 0.75rem;
 
-    /* Piano theme colors */
-    --chart-1: 207 90% 54%; /* blue-500 */
-    --chart-2: 199 89% 48%; /* cyan-600 */
-    --chart-3: 262 83% 58%; /* purple-500 */
-    --chart-4: 292 84% 61%; /* pink-500 */
-    --chart-5: 221 83% 53%; /* indigo-500 */
-  }
+    --neon-cyan: 190 100% 50%;
+    --neon-magenta: 320 100% 55%;
+    --neon-purple: 270 100% 60%;
+    --neon-pink: 330 100% 65%;
+    --neon-blue: 220 100% 60%;
+    --neon-green: 150 100% 45%;
+    --neon-yellow: 50 100% 55%;
+    --neon-orange: 25 100% 55%;
 
-  .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --primary: 207 90% 54%;
-    --primary-foreground: 211 100% 99%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --ring: 240 4.9% 83.9%;
+    --chart-1: 190 100% 50%;
+    --chart-2: 320 100% 55%;
+    --chart-3: 270 100% 60%;
+    --chart-4: 150 100% 45%;
+    --chart-5: 220 100% 60%;
   }
 }
 
@@ -62,7 +48,8 @@
   }
 
   body {
-    @apply font-sans antialiased bg-gradient-to-br from-blue-50 to-purple-50 text-foreground min-h-screen touch-none;
+    @apply font-sans antialiased text-foreground min-h-screen touch-none;
+    background: #08080f;
     overscroll-behavior: none;
   }
 
@@ -76,22 +63,134 @@
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
   }
-  
+
   .font-poppins {
     font-family: 'Poppins', sans-serif;
   }
-  
+
   .font-inter {
     font-family: 'Inter', sans-serif;
   }
-  
+
+  .font-mono-display {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+
   .played {
     animation: keyPress 0.3s ease-out;
   }
-  
+
   @keyframes keyPress {
     0% { transform: scale(1); }
     50% { transform: scale(0.92); }
     100% { transform: scale(1); }
+  }
+
+  .neon-glow-cyan {
+    box-shadow: 0 0 8px hsl(190 100% 50% / 0.4), 0 0 20px hsl(190 100% 50% / 0.2), inset 0 0 8px hsl(190 100% 50% / 0.1);
+  }
+
+  .neon-glow-magenta {
+    box-shadow: 0 0 8px hsl(320 100% 55% / 0.4), 0 0 20px hsl(320 100% 55% / 0.2), inset 0 0 8px hsl(320 100% 55% / 0.1);
+  }
+
+  .neon-glow-purple {
+    box-shadow: 0 0 8px hsl(270 100% 60% / 0.4), 0 0 20px hsl(270 100% 60% / 0.2), inset 0 0 8px hsl(270 100% 60% / 0.1);
+  }
+
+  .neon-text-cyan {
+    color: hsl(190 100% 50%);
+    text-shadow: 0 0 7px hsl(190 100% 50% / 0.6), 0 0 20px hsl(190 100% 50% / 0.3);
+  }
+
+  .neon-text-magenta {
+    color: hsl(320 100% 55%);
+    text-shadow: 0 0 7px hsl(320 100% 55% / 0.6), 0 0 20px hsl(320 100% 55% / 0.3);
+  }
+
+  .neon-text-purple {
+    color: hsl(270 100% 60%);
+    text-shadow: 0 0 7px hsl(270 100% 60% / 0.6), 0 0 20px hsl(270 100% 60% / 0.3);
+  }
+
+  .bg-grid-pattern {
+    background-image:
+      linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  .bg-dark-gradient {
+    background: linear-gradient(135deg, #08080f 0%, #0d0d1a 25%, #111128 50%, #0d0d1a 75%, #08080f 100%);
+  }
+
+  @keyframes neonPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+
+  .animate-neon-pulse {
+    animation: neonPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes rippleOut {
+    0% { transform: scale(0.3); opacity: 0.6; }
+    100% { transform: scale(2.5); opacity: 0; }
+  }
+
+  .animate-ripple {
+    animation: rippleOut 0.6s ease-out forwards;
+  }
+
+  @keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradientShift 8s ease infinite;
+  }
+
+  @keyframes beatPulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 hsl(190 100% 50% / 0.4); }
+    50% { transform: scale(1.02); box-shadow: 0 0 15px 3px hsl(190 100% 50% / 0.3); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 hsl(190 100% 50% / 0); }
+  }
+
+  .animate-beat-pulse {
+    animation: beatPulse 0.5s ease-out;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: hsl(240 15% 8%);
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(240 10% 25%);
+    border-radius: 3px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: hsl(190 100% 50% / 0.5);
+  }
+
+  .glass-panel {
+    background: rgba(13, 13, 26, 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 255, 255, 0.1);
+  }
+
+  .neon-border {
+    border: 1px solid rgba(0, 255, 255, 0.2);
+  }
+
+  .neon-border-magenta {
+    border: 1px solid rgba(255, 0, 128, 0.2);
   }
 }

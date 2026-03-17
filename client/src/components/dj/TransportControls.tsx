@@ -179,10 +179,10 @@ export default function TransportControls({ deck, className = '' }: TransportCon
   };
   
   return (
-    <Card className={`bg-gray-900 border-gray-700 ${className}`}>
+    <Card className={`glass-panel neon-border ${className}`}>
       <CardHeader className="pb-3">
         <CardTitle className="text-white text-lg flex items-center">
-          <Disc3 className="w-5 h-5 mr-2 text-blue-500" />
+          <Disc3 className="w-5 h-5 mr-2 neon-text-cyan" />
           Transport
           {isNearEnd && (
             <Badge variant="destructive" className="ml-2 animate-pulse">
@@ -201,8 +201,8 @@ export default function TransportControls({ deck, className = '' }: TransportCon
               ref={jogWheelRef}
               className={`w-32 h-32 rounded-full border-4 ${
                 jogTouched 
-                  ? 'border-blue-500 bg-blue-900' 
-                  : 'border-gray-600 bg-gray-800'
+                  ? 'border-cyan-400 bg-cyan-900/50' 
+                  : 'border-white/10 bg-black/30'
               } cursor-pointer select-none flex items-center justify-center relative transition-colors`}
               onMouseDown={handleJogMouseDown}
               onMouseMove={handleJogMouseMove}
@@ -217,7 +217,7 @@ export default function TransportControls({ deck, className = '' }: TransportCon
               {[...Array(8)].map((_, i) => (
                 <div
                   key={i}
-                  className="absolute w-1 h-4 bg-gray-400"
+                  className="absolute w-1 h-4 bg-white/40"
                   style={{
                     transform: `rotate(${i * 45}deg) translateY(-50px)`,
                     transformOrigin: 'center 50px'
@@ -230,12 +230,12 @@ export default function TransportControls({ deck, className = '' }: TransportCon
               
               {/* Touch indicator */}
               {jogTouched && (
-                <div className="absolute inset-0 rounded-full border-2 border-blue-400 animate-ping" />
+                <div className="absolute inset-0 rounded-full border-2 border-cyan-400/60 animate-ping" />
               )}
             </div>
             
             {/* Jog wheel label */}
-            <div className="text-center text-xs text-gray-400 mt-2">
+            <div className="text-center text-xs text-white/40 mt-2">
               {jogTouched ? 'Touching' : 'Jog Wheel'}
             </div>
           </div>
@@ -246,7 +246,7 @@ export default function TransportControls({ deck, className = '' }: TransportCon
           <Button
             variant="outline"
             size="lg"
-            className="border-gray-600 text-gray-300 hover:bg-gray-800"
+            className="border-white/10 text-white/60 hover:bg-black/30"
             onClick={handleStop}
             data-testid={`button-stop-${deck.id.toLowerCase().replace(' ', '-')}`}
           >
@@ -270,7 +270,7 @@ export default function TransportControls({ deck, className = '' }: TransportCon
         
         {/* Nudge Controls */}
         <div className="space-y-2">
-          <div className="text-sm text-gray-400 text-center">Nudge</div>
+          <div className="text-sm text-white/40 text-center">Nudge</div>
           <div className="flex space-x-2">
             <Button
               variant="outline"
@@ -298,7 +298,7 @@ export default function TransportControls({ deck, className = '' }: TransportCon
         
         {/* Beat Jump Controls */}
         <div className="space-y-2">
-          <div className="text-sm text-gray-400 text-center">Beat Jump</div>
+          <div className="text-sm text-white/40 text-center">Beat Jump</div>
           <div className="grid grid-cols-2 gap-2">
             {/* Backward jumps */}
             <div className="space-y-1">
@@ -337,10 +337,10 @@ export default function TransportControls({ deck, className = '' }: TransportCon
         </div>
         
         {/* Time Display */}
-        <div className="bg-gray-800 rounded-lg p-3 space-y-2">
+        <div className="bg-black/30 rounded-lg p-3 space-y-2">
           <div className="flex justify-between items-center">
             <div className="text-center">
-              <div className="text-xs text-gray-400">Current Time</div>
+              <div className="text-xs text-white/40">Current Time</div>
               <div 
                 className={`text-lg font-mono ${isNearEnd ? 'text-red-400' : 'text-white'}`}
                 data-testid={`text-current-time-${deck.id.toLowerCase().replace(' ', '-')}`}
@@ -350,7 +350,7 @@ export default function TransportControls({ deck, className = '' }: TransportCon
             </div>
             
             <div className="text-center">
-              <div className="text-xs text-gray-400">Remaining</div>
+              <div className="text-xs text-white/40">Remaining</div>
               <div 
                 className={`text-lg font-mono ${isNearEnd ? 'text-red-400 animate-pulse' : 'text-white'}`}
                 data-testid={`text-remaining-time-${deck.id.toLowerCase().replace(' ', '-')}`}
@@ -361,7 +361,7 @@ export default function TransportControls({ deck, className = '' }: TransportCon
           </div>
           
           {/* Progress bar */}
-          <div className="w-full bg-gray-700 rounded-full h-2">
+          <div className="w-full bg-white/10 rounded-full h-2">
             <div 
               className={`h-2 rounded-full transition-all duration-200 ${
                 isNearEnd ? 'bg-red-500' : 'bg-blue-500'
@@ -384,7 +384,7 @@ export default function TransportControls({ deck, className = '' }: TransportCon
         
         {/* Instant Actions */}
         <div className="space-y-2">
-          <div className="text-sm text-gray-400 text-center">Quick Actions</div>
+          <div className="text-sm text-white/40 text-center">Quick Actions</div>
           <div className="grid grid-cols-2 gap-2">
             <Button
               variant="outline"
@@ -414,19 +414,19 @@ export default function TransportControls({ deck, className = '' }: TransportCon
         </div>
         
         {/* Performance Stats */}
-        <div className="bg-gray-800 rounded-lg p-2">
-          <div className="text-xs text-gray-400 text-center mb-1">Performance</div>
+        <div className="bg-black/30 rounded-lg p-2">
+          <div className="text-xs text-white/40 text-center mb-1">Performance</div>
           <div className="grid grid-cols-3 gap-2 text-xs text-center">
             <div>
-              <div className="text-gray-400">Nudges</div>
+              <div className="text-white/40">Nudges</div>
               <div className="text-white font-mono">0</div>
             </div>
             <div>
-              <div className="text-gray-400">Jumps</div>
+              <div className="text-white/40">Jumps</div>
               <div className="text-white font-mono">0</div>
             </div>
             <div>
-              <div className="text-gray-400">Cues Hit</div>
+              <div className="text-white/40">Cues Hit</div>
               <div className="text-white font-mono">0</div>
             </div>
           </div>

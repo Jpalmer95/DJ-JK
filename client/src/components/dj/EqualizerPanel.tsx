@@ -270,10 +270,10 @@ export default function EqualizerPanel({
   }, [deck, isAnalyzing]);
   
   return (
-    <Card className={cn('bg-gray-900 border-gray-700', className)} data-testid={testId}>
+    <Card className={cn('glass-panel neon-border', className)} data-testid={testId}>
       <CardHeader className="pb-2">
         <CardTitle className={cn(
-          'text-center text-gray-200 flex items-center justify-between',
+          'text-center text-white/70 flex items-center justify-between',
           config.text
         )}>
           <Volume2 className="w-4 h-4" />
@@ -283,7 +283,7 @@ export default function EqualizerPanel({
             size="sm"
             className={cn(
               'p-1 h-auto',
-              isAnalyzing ? 'text-green-400' : 'text-gray-400'
+              isAnalyzing ? 'text-green-400' : 'text-white/40'
             )}
             onClick={() => setIsAnalyzing(!isAnalyzing)}
             data-testid={`button-eq-analyzer-${deckLabel.toLowerCase()}`}
@@ -300,12 +300,12 @@ export default function EqualizerPanel({
             <canvas
               ref={canvasRef}
               className={cn(
-                'w-full bg-gray-800 rounded border border-gray-600',
+                'w-full bg-black/30 rounded border border-white/10',
                 config.canvas
               )}
               data-testid={`canvas-eq-response-${deckLabel.toLowerCase()}`}
             />
-            <div className="absolute top-1 right-1 text-xs text-gray-400 bg-gray-800 px-1 rounded">
+            <div className="absolute top-1 right-1 text-xs text-white/40 bg-black/30 px-1 rounded">
               EQ Response
             </div>
           </div>
@@ -336,7 +336,7 @@ export default function EqualizerPanel({
                 config.button,
                 eqState.high.kill
                   ? 'bg-red-600 border-red-500 text-white shadow-red-500/50 shadow-lg'
-                  : 'border-gray-600 text-gray-300 hover:border-red-500 hover:text-red-400'
+                  : 'border-white/10 text-white/60 hover:border-red-500 hover:text-red-400'
               )}
               onClick={() => handleKillToggle('high')}
               data-testid={`button-eq-high-kill-${deckLabel.toLowerCase()}`}
@@ -368,7 +368,7 @@ export default function EqualizerPanel({
                 config.button,
                 eqState.mid.kill
                   ? 'bg-red-600 border-red-500 text-white shadow-red-500/50 shadow-lg'
-                  : 'border-gray-600 text-gray-300 hover:border-red-500 hover:text-red-400'
+                  : 'border-white/10 text-white/60 hover:border-red-500 hover:text-red-400'
               )}
               onClick={() => handleKillToggle('mid')}
               data-testid={`button-eq-mid-kill-${deckLabel.toLowerCase()}`}
@@ -400,7 +400,7 @@ export default function EqualizerPanel({
                 config.button,
                 eqState.low.kill
                   ? 'bg-red-600 border-red-500 text-white shadow-red-500/50 shadow-lg'
-                  : 'border-gray-600 text-gray-300 hover:border-red-500 hover:text-red-400'
+                  : 'border-white/10 text-white/60 hover:border-red-500 hover:text-red-400'
               )}
               onClick={() => handleKillToggle('low')}
               data-testid={`button-eq-low-kill-${deckLabel.toLowerCase()}`}
@@ -411,27 +411,27 @@ export default function EqualizerPanel({
         </div>
         
         {/* EQ Status Indicators */}
-        <div className="flex justify-center space-x-4 pt-2 border-t border-gray-700">
+        <div className="flex justify-center space-x-4 pt-2 border-t border-white/5">
           <div className="flex items-center space-x-1">
             <div className={cn(
               'w-2 h-2 rounded-full',
-              eqState.high.gain !== 0 || eqState.high.kill ? 'bg-red-500 shadow-red-500/50 shadow-sm' : 'bg-gray-600'
+              eqState.high.gain !== 0 || eqState.high.kill ? 'bg-red-500 shadow-red-500/50 shadow-sm' : 'bg-white/10'
             )} />
-            <span className="text-xs text-gray-400">HI</span>
+            <span className="text-xs text-white/40">HI</span>
           </div>
           <div className="flex items-center space-x-1">
             <div className={cn(
               'w-2 h-2 rounded-full',
-              eqState.mid.gain !== 0 || eqState.mid.kill ? 'bg-orange-500 shadow-orange-500/50 shadow-sm' : 'bg-gray-600'
+              eqState.mid.gain !== 0 || eqState.mid.kill ? 'bg-orange-500 shadow-orange-500/50 shadow-sm' : 'bg-white/10'
             )} />
-            <span className="text-xs text-gray-400">MID</span>
+            <span className="text-xs text-white/40">MID</span>
           </div>
           <div className="flex items-center space-x-1">
             <div className={cn(
               'w-2 h-2 rounded-full',
-              eqState.low.gain !== 0 || eqState.low.kill ? 'bg-blue-500 shadow-blue-500/50 shadow-sm' : 'bg-gray-600'
+              eqState.low.gain !== 0 || eqState.low.kill ? 'bg-blue-500 shadow-blue-500/50 shadow-sm' : 'bg-white/10'
             )} />
-            <span className="text-xs text-gray-400">LOW</span>
+            <span className="text-xs text-white/40">LOW</span>
           </div>
         </div>
         
@@ -440,7 +440,7 @@ export default function EqualizerPanel({
           <Button
             variant="ghost"
             size="sm"
-            className="text-xs text-gray-400 hover:text-gray-200"
+            className="text-xs text-white/40 hover:text-white/70"
             onClick={() => {
               updateEQParameter('high', 'gain', 0);
               updateEQParameter('mid', 'gain', 0);

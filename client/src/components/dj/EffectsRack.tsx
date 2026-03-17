@@ -188,13 +188,13 @@ export default function EffectsRack({
       'Flanger': 'bg-pink-600',
       'Bitcrusher': 'bg-indigo-600'
     };
-    return colorMap[effectType] || 'bg-gray-600';
+    return colorMap[effectType] || 'bg-white/15';
   };
   
   // Render effect parameters
   const renderEffectParameters = (effect: BaseEffect, slotIndex: number) => {
     return (
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-gray-800 rounded-lg">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-black/30 rounded-lg">
         {Object.entries(effect.parameters).map(([paramName, param]) => (
           <div key={paramName} className="flex flex-col items-center">
             <EffectKnob
@@ -225,8 +225,8 @@ export default function EffectsRack({
         className={cn(
           'transition-all duration-200',
           isEmpty 
-            ? 'bg-gray-800 border-gray-700 border-dashed' 
-            : 'bg-gray-900 border-gray-600',
+            ? 'bg-black/30 border-white/5 border-dashed' 
+            : 'bg-black/40 border-white/10',
           slot.bypassed && 'opacity-50'
         )}
       >
@@ -234,16 +234,16 @@ export default function EffectsRack({
           <div className="flex items-center justify-between">
             {isEmpty ? (
               <div className="flex items-center space-x-2">
-                <GripVertical className="w-4 h-4 text-gray-600" />
-                <span className="text-gray-500 text-sm">Empty Slot {slotIndex + 1}</span>
+                <GripVertical className="w-4 h-4 text-white/20" />
+                <span className="text-white/30 text-sm">Empty Slot {slotIndex + 1}</span>
               </div>
             ) : (
               <div className="flex items-center space-x-2">
-                <GripVertical className="w-4 h-4 text-gray-400 cursor-grab" />
+                <GripVertical className="w-4 h-4 text-white/40 cursor-grab" />
                 <Badge className={cn('text-xs', getEffectColor(slot.effect!.effectType))}>
                   {getEffectDisplayName(slot.effect!.effectType)}
                 </Badge>
-                <span className="text-gray-300 text-sm font-medium">
+                <span className="text-white/60 text-sm font-medium">
                   Slot {slotIndex + 1}
                 </span>
               </div>
@@ -272,7 +272,7 @@ export default function EffectsRack({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="p-1 h-auto text-gray-400 hover:text-gray-300"
+                    className="p-1 h-auto text-white/40 hover:text-white/60"
                     onClick={() => toggleEffectExpansion(slotIndex)}
                     data-testid={`button-expand-slot-${slotIndex}`}
                   >
@@ -283,7 +283,7 @@ export default function EffectsRack({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="p-1 h-auto text-gray-400 hover:text-red-400"
+                    className="p-1 h-auto text-white/40 hover:text-red-400"
                     onClick={() => removeEffectFromSlot(slotIndex)}
                     data-testid={`button-remove-slot-${slotIndex}`}
                   >
@@ -297,7 +297,7 @@ export default function EffectsRack({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="p-1 h-auto text-gray-400 hover:text-blue-400"
+                  className="p-1 h-auto text-white/40 hover:text-cyan-400"
                   onClick={() => {
                     setSelectedSlot(slotIndex);
                     setIsAddingEffect(true);
@@ -319,7 +319,7 @@ export default function EffectsRack({
         
         {isEmpty && (
           <CardContent className="pt-0">
-            <div className="text-center text-gray-500 text-sm py-4">
+            <div className="text-center text-white/30 text-sm py-4">
               Click + to add an effect
             </div>
           </CardContent>
@@ -331,11 +331,11 @@ export default function EffectsRack({
   return (
     <div className={cn('space-y-4', className)} data-testid={testId}>
       {/* Effects Rack Header */}
-      <Card className="bg-gray-900 border-gray-700">
+      <Card className="glass-panel neon-border">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <Zap className="w-5 h-5 text-blue-400" />
+              <Zap className="w-5 h-5 text-cyan-400" />
               <span className="text-white">{deckLabel} Effects Rack</span>
             </div>
             
@@ -348,7 +348,7 @@ export default function EffectsRack({
                   'border-2 font-bold transition-all',
                   masterBypass
                     ? 'bg-red-600 border-red-500 text-white shadow-red-500/50 shadow-md'
-                    : 'border-gray-600 text-gray-300 hover:border-blue-500 hover:text-blue-400'
+                    : 'border-white/10 text-white/60 hover:border-blue-500 hover:text-cyan-400'
                 )}
                 onClick={toggleMasterBypass}
                 data-testid={`button-master-bypass-${deckLabel.toLowerCase()}`}
@@ -361,7 +361,7 @@ export default function EffectsRack({
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-gray-400 hover:text-red-400"
+                className="text-white/40 hover:text-red-400"
                 onClick={clearAllEffects}
                 data-testid={`button-clear-all-${deckLabel.toLowerCase()}`}
               >
@@ -372,7 +372,7 @@ export default function EffectsRack({
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-gray-400 hover:text-gray-300"
+                className="text-white/40 hover:text-white/60"
                 data-testid={`button-settings-${deckLabel.toLowerCase()}`}
               >
                 <Settings className="w-4 h-4" />
@@ -401,7 +401,7 @@ export default function EffectsRack({
             {availableEffects.map(effectType => (
               <Card 
                 key={effectType}
-                className="cursor-pointer hover:bg-gray-800 transition-colors"
+                className="cursor-pointer hover:bg-black/30 transition-colors"
                 onClick={() => selectedSlot !== null && addEffectToSlot(selectedSlot, effectType)}
               >
                 <CardContent className="p-4">
@@ -410,13 +410,13 @@ export default function EffectsRack({
                       <Badge className={cn('text-xs', getEffectColor(effectType))}>
                         {getEffectDisplayName(effectType)}
                       </Badge>
-                      <span className="font-medium text-gray-200">
+                      <span className="font-medium text-white/70">
                         {getEffectDisplayName(effectType)}
                       </span>
                     </div>
-                    <Plus className="w-4 h-4 text-gray-400" />
+                    <Plus className="w-4 h-4 text-white/40" />
                   </div>
-                  <p className="text-sm text-gray-400 mt-2">
+                  <p className="text-sm text-white/40 mt-2">
                     {/* Add effect descriptions */}
                     {effectType === 'Filter' && 'High/Low pass filter with resonance control'}
                     {effectType === 'Reverb' && 'Room, hall, and plate reverb effects'}
@@ -434,14 +434,14 @@ export default function EffectsRack({
       </Sheet>
       
       {/* Rack Status */}
-      <Card className="bg-gray-900 border-gray-700">
+      <Card className="glass-panel neon-border">
         <CardContent className="p-3">
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center space-x-4">
-              <span className="text-gray-400">
+              <span className="text-white/40">
                 Effects: {effectSlots.filter(slot => slot.effect).length}/{maxEffects}
               </span>
-              <span className="text-gray-400">
+              <span className="text-white/40">
                 Active: {effectSlots.filter(slot => slot.effect && !slot.bypassed).length}
               </span>
             </div>
@@ -450,7 +450,7 @@ export default function EffectsRack({
               {/* CPU indicator placeholder */}
               <div className="flex items-center space-x-1">
                 <div className="w-2 h-2 rounded-full bg-green-500" />
-                <span className="text-xs text-gray-400">CPU OK</span>
+                <span className="text-xs text-white/40">CPU OK</span>
               </div>
             </div>
           </div>

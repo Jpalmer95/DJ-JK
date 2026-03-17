@@ -370,7 +370,7 @@ export default function EffectPresets({
     return (
       <Card 
         key={preset.id}
-        className="cursor-pointer hover:bg-gray-800 transition-colors group"
+        className="cursor-pointer hover:bg-black/30 transition-colors group"
       >
         <CardContent className="p-4">
           <div className="flex items-start justify-between mb-2">
@@ -397,7 +397,7 @@ export default function EffectPresets({
                 {preset.isFavorite ? (
                   <Star className="w-3 h-3 text-yellow-400 fill-current" />
                 ) : (
-                  <StarOff className="w-3 h-3 text-gray-400" />
+                  <StarOff className="w-3 h-3 text-white/40" />
                 )}
               </Button>
               
@@ -411,7 +411,7 @@ export default function EffectPresets({
                 }}
                 data-testid={`button-export-${preset.id}`}
               >
-                <Download className="w-3 h-3 text-gray-400" />
+                <Download className="w-3 h-3 text-white/40" />
               </Button>
               
               {preset.author === 'User' && (
@@ -431,10 +431,10 @@ export default function EffectPresets({
             </div>
           </div>
           
-          <h3 className="font-semibold text-gray-200 mb-1">{preset.name}</h3>
+          <h3 className="font-semibold text-white/70 mb-1">{preset.name}</h3>
           
           {preset.description && (
-            <p className="text-sm text-gray-400 mb-2">{preset.description}</p>
+            <p className="text-sm text-white/40 mb-2">{preset.description}</p>
           )}
           
           {preset.tags.length > 0 && (
@@ -442,7 +442,7 @@ export default function EffectPresets({
               {preset.tags.map(tag => (
                 <span 
                   key={tag}
-                  className="text-xs bg-gray-700 text-gray-300 px-1 py-0.5 rounded"
+                  className="text-xs bg-white/10 text-white/60 px-1 py-0.5 rounded"
                 >
                   {tag}
                 </span>
@@ -450,7 +450,7 @@ export default function EffectPresets({
             </div>
           )}
           
-          <div className="flex items-center justify-between text-xs text-gray-500">
+          <div className="flex items-center justify-between text-xs text-white/30">
             <span>by {preset.author}</span>
             <div className="flex items-center space-x-2">
               {preset.useCount > 0 && (
@@ -480,7 +480,7 @@ export default function EffectPresets({
           <Button
             variant="outline"
             size="sm"
-            className="border-gray-600 text-gray-300 hover:border-blue-500 hover:text-blue-400"
+            className="border-white/10 text-white/60 hover:border-blue-500 hover:text-blue-400"
             data-testid={`button-presets-${deckLabel.toLowerCase()}`}
           >
             <BookOpen className="w-4 h-4 mr-1" />
@@ -504,7 +504,7 @@ export default function EffectPresets({
             <div className="space-y-3">
               <div className="flex items-center space-x-2">
                 <div className="relative flex-1">
-                  <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-white/40" />
                   <Input
                     placeholder="Search presets..."
                     value={searchQuery}
@@ -518,7 +518,7 @@ export default function EffectPresets({
                   variant="outline"
                   size="sm"
                   className={cn(
-                    showFavoritesOnly ? 'bg-yellow-600 border-yellow-500' : 'border-gray-600'
+                    showFavoritesOnly ? 'bg-yellow-600 border-yellow-500' : 'border-white/10'
                   )}
                   onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
                   data-testid="button-favorites-filter"
@@ -667,7 +667,7 @@ export default function EffectPresets({
                 </label>
               </div>
               
-              <span className="text-sm text-gray-400">
+              <span className="text-sm text-white/40">
                 {filteredPresets.length} presets
               </span>
             </div>
@@ -678,7 +678,7 @@ export default function EffectPresets({
                 {filteredPresets.length > 0 ? (
                   filteredPresets.map(renderPresetCard)
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-white/30">
                     <BookOpen className="w-8 h-8 mx-auto mb-2 opacity-50" />
                     <p>No presets found</p>
                     <p className="text-sm">Try adjusting your search or filters</p>
