@@ -23,7 +23,7 @@ Preferred communication style: Simple, everyday language.
 ### Layout & Navigation
 - **Single-page dashboard** (`pages/dashboard.tsx`) with collapsible sidebar
 - **Five views**: Performance, Mix Studio, Soundboard, Recordings, Visuals
-- **Party/Studio mode toggle** persisted in localStorage
+- **Party/Studio mode toggle** persisted in localStorage, with first-run onboarding tooltips and quick-start presets
 - **DeckPanel** extracted as separate component with its own hooks
 
 ### Backend Architecture
@@ -45,7 +45,7 @@ Preferred communication style: Simple, everyday language.
 ### Audio System
 - **Sound Generation**: Web Audio API oscillators for built-in instruments (piano, synth, chiptune, funk)
 - **Custom Sounds**: File upload with audio processing and validation
-- **Soundboard**: Floating overlay with trigger pads, user-uploaded and built-in sounds (stored in localStorage)
+- **Soundboard**: Draggable/resizable floating overlay with trigger pads, user-uploaded sounds, AI-generated sounds (prompt-based synthesis), and built-in sounds (stored in localStorage)
 - **Recording**: Real-time note capture with countdown timer, waveform visualization, naming/tagging workflow
 - **Playback**: Accurate reproduction of recorded sequences with library management
 - **Beat Patterns**: Background rhythm tracks with multiple styles

@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Music, Disc3, Grid3X3, Mic, Square, Play, Share2, Settings,
   HelpCircle, ChevronLeft, ChevronRight, Layers, Radio,
-  Zap, ListMusic, Volume2, Headphones, Eye, Save, Tag, Clock, Trash2, Pause
+  Zap, ListMusic, Volume2, Headphones, Eye, Save, Tag, Clock, Trash2, Pause,
+  GripVertical, Sparkles, Info, X
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -55,6 +57,87 @@ const NAV_ITEMS: { id: NavItemId; icon: LucideIcon; label: string }[] = [
   { id: "visuals", icon: Eye, label: "Visuals" },
 ];
 
+function SoundboardOverlay({ onClose }: { onClose: () => void }) {
+  const [pos, setPos] = useState(() => {
+    try { const s = JSON.parse(localStorage.getItem("sb-pos") || "{}"); return { x: s.x ?? window.innerWidth - 460, y: s.y ?? window.innerHeight - 520 }; }
+    catch { return { x: window.innerWidth - 460, y: window.innerHeight - 520 }; }
+  });
+  const [size, setSize] = useState(() => {
+    try { const s = JSON.parse(localStorage.getItem("sb-size") || "{}"); return { w: s.w ?? 420, h: s.h ?? 480 }; }
+    catch { return { w: 420, h: 480 }; }
+  });
+  const dragging = useRef(false);
+  const resizing = useRef(false);
+  const dragOffset = useRef({ x: 0, y: 0 });
+
+  const onDragStart = useCallback((e: React.MouseEvent) => {
+    dragging.current = true;
+    dragOffset.current = { x: e.clientX - pos.x, y: e.clientY - pos.y };
+    const onMove = (ev: MouseEvent) => {
+      if (!dragging.current) return;
+      const nx = Math.max(0, Math.min(ev.clientX - dragOffset.current.x, window.innerWidth - size.w));
+      const ny = Math.max(0, Math.min(ev.clientY - dragOffset.current.y, window.innerHeight - size.h));
+      setPos({ x: nx, y: ny });
+    };
+    const onUp = () => {
+      dragging.current = false;
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      setPos(p => { localStorage.setItem("sb-pos", JSON.stringify(p)); return p; });
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }, [pos, size.w, size.h]);
+
+  const onResizeStart = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    resizing.current = true;
+    const startX = e.clientX, startY = e.clientY;
+    const startW = size.w, startH = size.h;
+    const onMove = (ev: MouseEvent) => {
+      if (!resizing.current) return;
+      const nw = Math.max(320, Math.min(startW + ev.clientX - startX, window.innerWidth - pos.x));
+      const nh = Math.max(300, Math.min(startH + ev.clientY - startY, window.innerHeight - pos.y));
+      setSize({ w: nw, h: nh });
+    };
+    const onUp = () => {
+      resizing.current = false;
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      setSize(s => { localStorage.setItem("sb-size", JSON.stringify(s)); return s; });
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }, [size, pos]);
+
+  return (
+    <div className="fixed z-50 flex flex-col glass-panel rounded-xl neon-border-magenta shadow-2xl shadow-fuchsia-500/20 overflow-hidden"
+      style={{ left: pos.x, top: pos.y, width: size.w, height: size.h, backdropFilter: "blur(20px)" }}>
+      <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 cursor-grab active:cursor-grabbing select-none shrink-0"
+        onMouseDown={onDragStart}>
+        <div className="flex items-center gap-2">
+          <GripVertical className="w-3.5 h-3.5 text-white/30" />
+          <Layers className="w-4 h-4 neon-text-magenta" />
+          <span className="text-sm font-bold text-white/80">Soundboard</span>
+        </div>
+        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-white/30 hover:text-white/60"
+          onClick={onClose}>
+          <Square className="w-3 h-3" />
+        </Button>
+      </div>
+      <div className="flex-1 overflow-y-auto scrollbar-thin">
+        <Soundboard />
+      </div>
+      <div className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"
+        onMouseDown={onResizeStart}>
+        <svg className="w-4 h-4 text-white/20" viewBox="0 0 16 16">
+          <path d="M14 16L16 14M10 16L16 10M6 16L16 6" stroke="currentColor" strokeWidth="1.5" fill="none" />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { toast } = useToast();
 
@@ -69,6 +152,11 @@ export default function Dashboard() {
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isCustomSoundsOpen, setIsCustomSoundsOpen] = useState(false);
   const [soundboardOverlayOpen, setSoundboardOverlayOpen] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState<number>(() => {
+    const seen = localStorage.getItem("onboarding-done");
+    return seen ? -1 : 0;
+  });
+  const [showQuickStart, setShowQuickStart] = useState(false);
 
   const [isRecording, setIsRecording] = useState(false);
   const [recordedSequence, setRecordedSequence] = useState<RecordedNote[]>([]);
@@ -691,30 +779,150 @@ export default function Dashboard() {
       </main>
 
       {/* Floating Soundboard Overlay */}
-      {soundboardOverlayOpen && (
-        <div className="fixed bottom-4 right-4 z-50 w-[420px] max-h-[70vh] flex flex-col glass-panel rounded-xl neon-border-magenta shadow-2xl shadow-fuchsia-500/20 overflow-hidden"
-          style={{ backdropFilter: "blur(20px)" }}>
-          <div className="flex items-center justify-between px-4 py-2 border-b border-white/10">
-            <div className="flex items-center gap-2">
-              <Layers className="w-4 h-4 neon-text-magenta" />
-              <span className="text-sm font-bold text-white/80">Soundboard</span>
-            </div>
-            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-white/30 hover:text-white/60"
-              onClick={() => setSoundboardOverlayOpen(false)}>
-              <Square className="w-3 h-3" />
-            </Button>
-          </div>
-          <div className="flex-1 overflow-y-auto scrollbar-thin" style={{ maxHeight: "calc(70vh - 40px)" }}>
-            <Soundboard />
-          </div>
-        </div>
-      )}
+      {soundboardOverlayOpen && <SoundboardOverlay onClose={() => setSoundboardOverlayOpen(false)} />}
 
       {/* Modals */}
       <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} volume={volume} animationsEnabled={animationsEnabled} themeColor={themeColor} onSave={handleSaveSettings} />
       <ShareModal isOpen={isShareOpen} onClose={() => setIsShareOpen(false)} recording={hasRecorded ? getRecordingData() : null} />
       <CustomSoundsModal isOpen={isCustomSoundsOpen} onClose={() => setIsCustomSoundsOpen(false)} />
+
+      {/* Onboarding Tooltips */}
+      <AnimatePresence>
+        {onboardingStep >= 0 && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] pointer-events-none"
+          >
+            <div className="absolute inset-0 bg-black/50 pointer-events-auto" onClick={() => { setOnboardingStep(-1); localStorage.setItem("onboarding-done", "1"); }} />
+            <motion.div
+              key={onboardingStep}
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
+              className="pointer-events-auto absolute glass-panel rounded-xl neon-border p-5 max-w-sm shadow-2xl shadow-cyan-500/20"
+              style={
+                onboardingStep === 0 ? { top: "50%", left: "50%", transform: "translate(-50%, -50%)" } :
+                onboardingStep === 1 ? { top: "30%", left: "90px" } :
+                onboardingStep === 2 ? { bottom: "120px", left: "90px" } :
+                { top: "50%", left: "50%", transform: "translate(-50%, -50%)" }
+              }
+            >
+              {onboardingStep === 0 && (
+                <div className="space-y-3 text-center">
+                  <div className="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center mx-auto">
+                    <Sparkles className="w-6 h-6 text-cyan-400" />
+                  </div>
+                  <h3 className="text-lg font-bold neon-text-cyan">Welcome to Synth Party!</h3>
+                  <p className="text-white/60 text-sm">Your next-gen DJ board and music studio. Let's get you started with a quick tour.</p>
+                </div>
+              )}
+              {onboardingStep === 1 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Grid3X3 className="w-5 h-5 text-cyan-400" />
+                    <h3 className="text-sm font-bold text-white/90">Synth Launchpad</h3>
+                  </div>
+                  <p className="text-white/50 text-xs">Tap the neon pads to play sounds! Try different sound modes (Synth, Piano, Drums) and enable beat patterns for instant grooves.</p>
+                </div>
+              )}
+              {onboardingStep === 2 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-5 h-5 text-fuchsia-400" />
+                    <h3 className="text-sm font-bold text-white/90">Soundboard & Recording</h3>
+                  </div>
+                  <p className="text-white/50 text-xs">Open the floating Soundboard to trigger DJ samples. Hit Record to capture your performance, then name and save it to your library.</p>
+                </div>
+              )}
+              {onboardingStep === 3 && (
+                <div className="space-y-3 text-center">
+                  <div className="w-12 h-12 rounded-full bg-fuchsia-500/20 flex items-center justify-center mx-auto">
+                    <Zap className="w-6 h-6 text-fuchsia-400" />
+                  </div>
+                  <h3 className="text-sm font-bold text-white/90">Party Mode vs Studio Mode</h3>
+                  <p className="text-white/50 text-xs">You're starting in Party Mode with simplified controls. Switch to Studio Mode anytime from the sidebar to unlock the full Mix Studio, advanced effects, and EQ controls.</p>
+                  <Button size="sm" className="bg-fuchsia-600/30 hover:bg-fuchsia-600/50 text-fuchsia-300 mt-2"
+                    onClick={() => { setShowQuickStart(true); setOnboardingStep(-1); localStorage.setItem("onboarding-done", "1"); }}>
+                    <Sparkles className="w-3 h-3 mr-1" /> Show Quick-Start Presets
+                  </Button>
+                </div>
+              )}
+              <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/10">
+                <span className="text-[10px] text-white/30">{onboardingStep + 1} / 4</span>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm" className="text-white/40 text-xs h-7" onClick={() => { setOnboardingStep(-1); localStorage.setItem("onboarding-done", "1"); }}>
+                    Skip
+                  </Button>
+                  <Button size="sm" className="bg-cyan-600/30 hover:bg-cyan-600/50 text-cyan-300 text-xs h-7"
+                    onClick={() => {
+                      if (onboardingStep < 3) setOnboardingStep(s => s + 1);
+                      else { setOnboardingStep(-1); localStorage.setItem("onboarding-done", "1"); }
+                    }}>
+                    {onboardingStep < 3 ? "Next" : "Get Started"}
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Quick-Start Presets Modal */}
+      <AnimatePresence>
+        {showQuickStart && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center"
+          >
+            <div className="absolute inset-0 bg-black/60" onClick={() => setShowQuickStart(false)} />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="relative glass-panel rounded-2xl neon-border-magenta p-6 max-w-lg w-full mx-4 shadow-2xl"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-fuchsia-400" />
+                  <h2 className="text-lg font-bold text-white/90">Quick-Start Presets</h2>
+                </div>
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-white/30 hover:text-white/60" onClick={() => setShowQuickStart(false)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-white/40 mb-4">Pick a preset to instantly configure your sound and start jamming:</p>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { name: "EDM Drop", sound: "synth" as SoundMode, beat: "fourOnFloor" as BeatPattern, icon: Zap, border: "border-cyan-500/20 hover:border-cyan-500/50", iconColor: "text-cyan-400" },
+                  { name: "Lo-Fi Chill", sound: "piano" as SoundMode, beat: "none" as BeatPattern, icon: Music, border: "border-violet-500/20 hover:border-violet-500/50", iconColor: "text-violet-400" },
+                  { name: "Drum Machine", sound: "drums" as SoundMode, beat: "breakbeat" as BeatPattern, icon: Radio, border: "border-rose-500/20 hover:border-rose-500/50", iconColor: "text-rose-400" },
+                  { name: "Synth Wave", sound: "synth" as SoundMode, beat: "house" as BeatPattern, icon: Disc3, border: "border-fuchsia-500/20 hover:border-fuchsia-500/50", iconColor: "text-fuchsia-400" },
+                  { name: "Acoustic Jam", sound: "piano" as SoundMode, beat: "none" as BeatPattern, icon: Headphones, border: "border-amber-500/20 hover:border-amber-500/50", iconColor: "text-amber-400" },
+                  { name: "Trap Beat", sound: "drums" as SoundMode, beat: "trap" as BeatPattern, icon: Volume2, border: "border-emerald-500/20 hover:border-emerald-500/50", iconColor: "text-emerald-400" },
+                ].map(preset => (
+                  <button
+                    key={preset.name}
+                    className={`glass-panel rounded-xl p-4 text-left transition-all hover:brightness-125 border ${preset.border} group`}
+                    onClick={() => {
+                      setCurrentSoundMode(preset.sound);
+                      if (preset.beat !== "none") {
+                        setCurrentBeatPattern(preset.beat);
+                        setBeatEnabled(true);
+                      } else {
+                        setBeatEnabled(false);
+                      }
+                      setShowQuickStart(false);
+                      setActiveView("performance");
+                      toast({ title: `${preset.name} Loaded!`, description: `Sound: ${preset.sound}, Beat: ${preset.beat === "none" ? "off" : preset.beat}` });
+                    }}
+                  >
+                    <preset.icon className={`w-5 h-5 ${preset.iconColor} mb-2`} />
+                    <p className="text-sm font-semibold text-white/80">{preset.name}</p>
+                    <p className="text-[10px] text-white/30 mt-0.5">{preset.sound} + {preset.beat === "none" ? "no beat" : preset.beat}</p>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

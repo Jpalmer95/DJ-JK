@@ -3,9 +3,37 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Volume2, Trash2, Plus, GripVertical, X } from "lucide-react";
+import { Upload, Volume2, Trash2, Plus, GripVertical, X, Sparkles, Wand2 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { initAudioContext } from "@/lib/audio";
+
+function audioBufferToWav(buffer: AudioBuffer): Blob {
+  const numChannels = buffer.numberOfChannels;
+  const sampleRate = buffer.sampleRate;
+  const format = 1;
+  const bitDepth = 16;
+  const bytesPerSample = bitDepth / 8;
+  const blockAlign = numChannels * bytesPerSample;
+  const data = buffer.getChannelData(0);
+  const samples = data.length;
+  const dataSize = samples * blockAlign;
+  const bufferSize = 44 + dataSize;
+  const ab = new ArrayBuffer(bufferSize);
+  const view = new DataView(ab);
+  const writeStr = (o: number, s: string) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
+  writeStr(0, 'RIFF'); view.setUint32(4, 36 + dataSize, true); writeStr(8, 'WAVE');
+  writeStr(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, format, true);
+  view.setUint16(22, numChannels, true); view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * blockAlign, true); view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitDepth, true); writeStr(36, 'data'); view.setUint32(40, dataSize, true);
+  let offset = 44;
+  for (let i = 0; i < samples; i++) {
+    const s = Math.max(-1, Math.min(1, data[i]));
+    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    offset += 2;
+  }
+  return new Blob([ab], { type: 'audio/wav' });
+}
 
 interface SoundByte {
   id: string;
@@ -244,6 +272,9 @@ export default function Soundboard({ compact = false }: SoundboardProps) {
   const [activePad, setActivePad] = useState<string | null>(null);
   const [sbVolume, setSbVolume] = useState(0.8);
   const [showUpload, setShowUpload] = useState(false);
+  const [showGenerate, setShowGenerate] = useState(false);
+  const [generatePrompt, setGeneratePrompt] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
   const [newSoundName, setNewSoundName] = useState("");
   const [newSoundCategory, setNewSoundCategory] = useState("Custom");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -311,6 +342,109 @@ export default function Soundboard({ compact = false }: SoundboardProps) {
     localStorage.setItem("soundboard-custom-sounds", JSON.stringify(customs));
   };
 
+  const generateAISound = useCallback(async () => {
+    if (!generatePrompt.trim()) return;
+    setIsGenerating(true);
+    try {
+      const ctx = getAudioContext();
+      const duration = 1.5;
+      const sampleRate = ctx.sampleRate;
+      const frames = Math.floor(sampleRate * duration);
+      const buffer = ctx.createBuffer(1, frames, sampleRate);
+      const data = buffer.getChannelData(0);
+      const prompt = generatePrompt.toLowerCase();
+
+      const hasKick = prompt.includes("kick") || prompt.includes("thump") || prompt.includes("boom");
+      const hasSnare = prompt.includes("snare") || prompt.includes("crack") || prompt.includes("snap");
+      const hasHiHat = prompt.includes("hat") || prompt.includes("tick") || prompt.includes("click");
+      const hasBass = prompt.includes("bass") || prompt.includes("sub") || prompt.includes("rumble");
+      const hasRiser = prompt.includes("riser") || prompt.includes("sweep") || prompt.includes("build");
+      const hasLaser = prompt.includes("laser") || prompt.includes("zap") || prompt.includes("pew");
+      const hasChord = prompt.includes("chord") || prompt.includes("pad") || prompt.includes("ambient");
+      const hasWobble = prompt.includes("wobble") || prompt.includes("wub") || prompt.includes("dubstep");
+
+      for (let i = 0; i < frames; i++) {
+        const t = i / sampleRate;
+        let sample = 0;
+        const env = Math.exp(-t * 3);
+
+        if (hasKick) {
+          const kFreq = 150 * Math.exp(-t * 30);
+          sample += Math.sin(2 * Math.PI * kFreq * t) * Math.exp(-t * 8) * 0.7;
+        }
+        if (hasSnare) {
+          sample += (Math.random() * 2 - 1) * Math.exp(-t * 15) * 0.4;
+          sample += Math.sin(2 * Math.PI * 200 * t) * Math.exp(-t * 20) * 0.3;
+        }
+        if (hasHiHat) {
+          sample += (Math.random() * 2 - 1) * Math.exp(-t * 40) * 0.2;
+        }
+        if (hasBass) {
+          sample += Math.sin(2 * Math.PI * 55 * t) * env * 0.6;
+          sample += Math.sin(2 * Math.PI * 110 * t) * env * 0.2;
+        }
+        if (hasRiser) {
+          const rFreq = 200 + t * 3000;
+          sample += Math.sin(2 * Math.PI * rFreq * t) * Math.min(t * 2, 1) * 0.4;
+        }
+        if (hasLaser) {
+          const lFreq = 2000 * Math.exp(-t * 8);
+          sample += Math.sin(2 * Math.PI * lFreq * t) * Math.exp(-t * 5) * 0.5;
+        }
+        if (hasChord) {
+          [261.6, 329.6, 392.0, 523.3].forEach(f => {
+            sample += Math.sin(2 * Math.PI * f * t) * env * 0.15;
+          });
+        }
+        if (hasWobble) {
+          const wobRate = 4 + Math.sin(t * 2) * 3;
+          sample += Math.sin(2 * Math.PI * 80 * t + Math.sin(wobRate * t * 2 * Math.PI) * 3) * env * 0.5;
+        }
+        if (!hasKick && !hasSnare && !hasHiHat && !hasBass && !hasRiser && !hasLaser && !hasChord && !hasWobble) {
+          const baseFreq = 220 + (prompt.charCodeAt(0) || 0) * 3;
+          sample += Math.sin(2 * Math.PI * baseFreq * t) * env * 0.4;
+          sample += Math.sin(2 * Math.PI * baseFreq * 1.5 * t) * env * 0.2;
+          sample += (Math.random() * 2 - 1) * Math.exp(-t * 10) * 0.1;
+        }
+
+        data[i] = Math.max(-1, Math.min(1, sample));
+      }
+
+      const offlineCtx = new OfflineAudioContext(1, frames, sampleRate);
+      const src = offlineCtx.createBufferSource();
+      src.buffer = buffer;
+      src.connect(offlineCtx.destination);
+      src.start();
+      const rendered = await offlineCtx.startRendering();
+
+      const wavBlob = audioBufferToWav(rendered);
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const dataUrl = ev.target?.result as string;
+        const category = hasKick || hasSnare || hasHiHat ? "Drums" : hasBass || hasWobble ? "Bass" : hasRiser || hasLaser ? "FX" : hasChord ? "Custom" : "FX";
+        const newSound: SoundByte = {
+          id: `ai-${Date.now()}`,
+          name: generatePrompt.slice(0, 20),
+          category,
+          audioData: dataUrl,
+          color: CATEGORY_COLORS[category] || CATEGORY_COLORS.Custom,
+        };
+        const updated = [...sounds, newSound];
+        setSounds(updated);
+        const customs = updated.filter(s => !s.audioData.startsWith("builtin:"));
+        localStorage.setItem("soundboard-custom-sounds", JSON.stringify(customs));
+        setGeneratePrompt("");
+        setShowGenerate(false);
+        toast({ title: "AI Sound Generated!", description: `"${newSound.name}" created and added to ${category}` });
+      };
+      reader.readAsDataURL(wavBlob);
+    } catch (err) {
+      toast({ title: "Generation failed", description: "Could not generate sound", variant: "destructive" });
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [generatePrompt, sounds, getAudioContext, toast]);
+
   const filtered = activeCategory === "All" ? sounds : sounds.filter(s => s.category === activeCategory);
 
   return (
@@ -329,8 +463,17 @@ export default function Soundboard({ compact = false }: SoundboardProps) {
           <Button
             variant="ghost"
             size="sm"
+            className="h-6 w-6 p-0 text-fuchsia-400 hover:text-fuchsia-300"
+            onClick={() => { setShowGenerate(!showGenerate); setShowUpload(false); }}
+            title="AI Generate Sound"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             className="h-6 w-6 p-0 text-cyan-400 hover:text-cyan-300"
-            onClick={() => setShowUpload(!showUpload)}
+            onClick={() => { setShowUpload(!showUpload); setShowGenerate(false); }}
           >
             <Plus className="w-3.5 h-3.5" />
           </Button>
@@ -389,6 +532,54 @@ export default function Soundboard({ compact = false }: SoundboardProps) {
                 Choose Audio File
               </Button>
               <input ref={fileInputRef} type="file" accept="audio/*" onChange={handleFileUpload} className="hidden" />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showGenerate && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden mb-3"
+          >
+            <div className="glass-panel rounded-lg p-3 space-y-2 neon-border-magenta">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Sparkles className="w-3.5 h-3.5 text-fuchsia-400" />
+                <span className="text-[10px] font-semibold text-fuchsia-300 uppercase tracking-wider">AI Sound Generator</span>
+              </div>
+              <Input
+                placeholder='Describe a sound... e.g. "deep kick with sub bass"'
+                value={generatePrompt}
+                onChange={(e) => setGeneratePrompt(e.target.value)}
+                className="h-7 text-xs bg-white/5 border-white/10"
+                onKeyDown={(e) => e.key === "Enter" && generateAISound()}
+              />
+              <div className="flex flex-wrap gap-1">
+                {["kick + bass", "laser zap", "riser sweep", "ambient chord", "wobble bass", "snare crack", "hi-hat tick"].map(preset => (
+                  <button
+                    key={preset}
+                    onClick={() => setGeneratePrompt(preset)}
+                    className="px-1.5 py-0.5 rounded text-[9px] text-white/50 hover:text-fuchsia-300 bg-white/5 hover:bg-fuchsia-500/10 transition-colors"
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+              <Button
+                size="sm"
+                className="w-full h-7 text-xs bg-fuchsia-600/30 hover:bg-fuchsia-600/50 text-fuchsia-300"
+                onClick={generateAISound}
+                disabled={isGenerating || !generatePrompt.trim()}
+              >
+                {isGenerating ? (
+                  <><Wand2 className="w-3 h-3 mr-1 animate-spin" /> Generating...</>
+                ) : (
+                  <><Sparkles className="w-3 h-3 mr-1" /> Generate Sound</>
+                )}
+              </Button>
             </div>
           </motion.div>
         )}
