@@ -890,12 +890,12 @@ export default function Dashboard() {
               <p className="text-xs text-white/40 mb-4">Pick a preset to instantly configure your sound and start jamming:</p>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { name: "EDM Drop", sound: "synth" as SoundMode, beat: "fourOnFloor" as BeatPattern, icon: Zap, border: "border-cyan-500/20 hover:border-cyan-500/50", iconColor: "text-cyan-400" },
+                  { name: "EDM Drop", sound: "synth" as SoundMode, beat: "electro" as BeatPattern, icon: Zap, border: "border-cyan-500/20 hover:border-cyan-500/50", iconColor: "text-cyan-400" },
                   { name: "Lo-Fi Chill", sound: "piano" as SoundMode, beat: "none" as BeatPattern, icon: Music, border: "border-violet-500/20 hover:border-violet-500/50", iconColor: "text-violet-400" },
-                  { name: "Drum Machine", sound: "drums" as SoundMode, beat: "breakbeat" as BeatPattern, icon: Radio, border: "border-rose-500/20 hover:border-rose-500/50", iconColor: "text-rose-400" },
-                  { name: "Synth Wave", sound: "synth" as SoundMode, beat: "house" as BeatPattern, icon: Disc3, border: "border-fuchsia-500/20 hover:border-fuchsia-500/50", iconColor: "text-fuchsia-400" },
+                  { name: "Funk Groove", sound: "funk" as SoundMode, beat: "groove" as BeatPattern, icon: Radio, border: "border-rose-500/20 hover:border-rose-500/50", iconColor: "text-rose-400" },
+                  { name: "Synth Wave", sound: "synth" as SoundMode, beat: "basic" as BeatPattern, icon: Disc3, border: "border-fuchsia-500/20 hover:border-fuchsia-500/50", iconColor: "text-fuchsia-400" },
                   { name: "Acoustic Jam", sound: "piano" as SoundMode, beat: "none" as BeatPattern, icon: Headphones, border: "border-amber-500/20 hover:border-amber-500/50", iconColor: "text-amber-400" },
-                  { name: "Trap Beat", sound: "drums" as SoundMode, beat: "trap" as BeatPattern, icon: Volume2, border: "border-emerald-500/20 hover:border-emerald-500/50", iconColor: "text-emerald-400" },
+                  { name: "Chiptune Beats", sound: "chiptune" as SoundMode, beat: "electro" as BeatPattern, icon: Volume2, border: "border-emerald-500/20 hover:border-emerald-500/50", iconColor: "text-emerald-400" },
                 ].map(preset => (
                   <button
                     key={preset.name}
