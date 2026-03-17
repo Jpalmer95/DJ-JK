@@ -35,7 +35,7 @@ import {
   stopBeat
 } from "@/lib/audio";
 
-type ViewMode = "performance" | "mixstudio" | "soundboard" | "recordings" | "visuals";
+type ViewMode = "performance" | "mixstudio" | "recordings" | "visuals";
 type StudioMode = "party" | "studio";
 
 interface RecordedNote {
@@ -43,7 +43,11 @@ interface RecordedNote {
   time: number;
 }
 
-const NAV_ITEMS: { id: ViewMode; icon: any; label: string }[] = [
+import type { LucideIcon } from "lucide-react";
+
+type NavItemId = ViewMode | "soundboard";
+
+const NAV_ITEMS: { id: NavItemId; icon: LucideIcon; label: string }[] = [
   { id: "performance", icon: Grid3X3, label: "Perform" },
   { id: "mixstudio", icon: Disc3, label: "Mix Studio" },
   { id: "soundboard", icon: Layers, label: "Soundboard" },
@@ -64,6 +68,7 @@ export default function Dashboard() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isCustomSoundsOpen, setIsCustomSoundsOpen] = useState(false);
+  const [soundboardOverlayOpen, setSoundboardOverlayOpen] = useState(false);
 
   const [isRecording, setIsRecording] = useState(false);
   const [recordedSequence, setRecordedSequence] = useState<RecordedNote[]>([]);
@@ -93,7 +98,7 @@ export default function Dashboard() {
 
   const recordingStartTimeRef = useRef<number | null>(null);
   const countdownRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pianoGridRef = useRef<any>(null);
+  const pianoGridRef = useRef<import("@/components/PianoGrid").PianoGridHandle | null>(null);
 
   const [mixer] = useState(() => new DJMixer());
   const [deckAState, setDeckAState] = useState({ currentTime: 0, duration: 0, isPlaying: false, volume: 1, pitchPercentage: 0 });
@@ -305,19 +310,36 @@ export default function Dashboard() {
         </div>
 
         <nav className="flex-1 p-2 space-y-1">
-          {NAV_ITEMS.map(item => (
-            <button
-              key={item.id}
-              onClick={() => setActiveView(item.id)}
-              className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all
-                ${activeView === item.id
-                  ? "bg-cyan-500/15 text-cyan-300 neon-border"
-                  : "text-white/40 hover:text-white/70 hover:bg-white/5"}`}
-            >
-              <item.icon className="w-4 h-4 flex-shrink-0" />
-              {!sidebarCollapsed && <span className="truncate text-xs font-medium">{item.label}</span>}
-            </button>
-          ))}
+          {NAV_ITEMS.map(item => {
+            if (item.id === "soundboard") {
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setSoundboardOverlayOpen(prev => !prev)}
+                  className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all
+                    ${soundboardOverlayOpen
+                      ? "bg-fuchsia-500/15 text-fuchsia-300 neon-border-magenta"
+                      : "text-white/40 hover:text-white/70 hover:bg-white/5"}`}
+                >
+                  <item.icon className="w-4 h-4 flex-shrink-0" />
+                  {!sidebarCollapsed && <span className="truncate text-xs font-medium">{item.label}</span>}
+                </button>
+              );
+            }
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveView(item.id as ViewMode)}
+                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all
+                  ${activeView === item.id
+                    ? "bg-cyan-500/15 text-cyan-300 neon-border"
+                    : "text-white/40 hover:text-white/70 hover:bg-white/5"}`}
+              >
+                <item.icon className="w-4 h-4 flex-shrink-0" />
+                {!sidebarCollapsed && <span className="truncate text-xs font-medium">{item.label}</span>}
+              </button>
+            );
+          })}
         </nav>
 
         <div className="p-2 border-t border-white/5 space-y-1">
@@ -509,21 +531,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Soundboard View */}
-        {activeView === "soundboard" && (
-          <div className="h-full">
-            <div className="p-4 lg:p-6">
-              <div className="mb-4">
-                <h2 className="text-xl font-bold neon-text-magenta">Soundboard</h2>
-                <p className="text-xs text-white/30">Trigger sound bytes over your mix</p>
-              </div>
-              <div className="glass-panel rounded-xl neon-border-magenta" style={{ minHeight: "70vh" }}>
-                <Soundboard />
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Recordings View */}
         {activeView === "recordings" && (
           <div className="p-4 lg:p-6 space-y-4">
@@ -682,6 +689,26 @@ export default function Dashboard() {
           </div>
         )}
       </main>
+
+      {/* Floating Soundboard Overlay */}
+      {soundboardOverlayOpen && (
+        <div className="fixed bottom-4 right-4 z-50 w-[420px] max-h-[70vh] flex flex-col glass-panel rounded-xl neon-border-magenta shadow-2xl shadow-fuchsia-500/20 overflow-hidden"
+          style={{ backdropFilter: "blur(20px)" }}>
+          <div className="flex items-center justify-between px-4 py-2 border-b border-white/10">
+            <div className="flex items-center gap-2">
+              <Layers className="w-4 h-4 neon-text-magenta" />
+              <span className="text-sm font-bold text-white/80">Soundboard</span>
+            </div>
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-white/30 hover:text-white/60"
+              onClick={() => setSoundboardOverlayOpen(false)}>
+              <Square className="w-3 h-3" />
+            </Button>
+          </div>
+          <div className="flex-1 overflow-y-auto scrollbar-thin" style={{ maxHeight: "calc(70vh - 40px)" }}>
+            <Soundboard />
+          </div>
+        </div>
+      )}
 
       {/* Modals */}
       <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />

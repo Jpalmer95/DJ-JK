@@ -118,10 +118,10 @@ export default function EffectKnob({
       activeGlow: 'shadow-purple-500/75'
     },
     white: {
-      ring: 'ring-gray-300',
-      dot: 'bg-gray-200',
-      glow: 'shadow-gray-300/50',
-      activeGlow: 'shadow-gray-300/75'
+      ring: 'ring-white/50',
+      dot: 'bg-white/70',
+      glow: 'shadow-white/30',
+      activeGlow: 'shadow-white/50'
     }
   };
   

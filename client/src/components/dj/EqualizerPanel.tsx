@@ -125,11 +125,11 @@ export default function EqualizerPanel({
     const height = canvas.height;
     
     // Clear canvas
-    ctx.fillStyle = '#1f2937'; // gray-800
+    ctx.fillStyle = '#0a0a14';
     ctx.fillRect(0, 0, width, height);
     
     // Grid lines
-    ctx.strokeStyle = '#374151'; // gray-700
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
     ctx.lineWidth = 1;
     
     // Horizontal grid (dB levels)
@@ -200,7 +200,7 @@ export default function EqualizerPanel({
     ctx.stroke();
     
     // Frequency labels
-    ctx.fillStyle = '#9ca3af'; // gray-400
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
     ctx.font = '10px monospace';
     ctx.textAlign = 'center';
     

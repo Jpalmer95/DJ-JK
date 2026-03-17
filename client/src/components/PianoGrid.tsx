@@ -22,7 +22,11 @@ interface PianoGridProps {
   compact?: boolean;
 }
 
-const PianoGrid = forwardRef<any, PianoGridProps>(({
+export interface PianoGridHandle {
+  playNoteByIndex: (index: number) => void;
+}
+
+const PianoGrid = forwardRef<PianoGridHandle, PianoGridProps>(({
   onNotePlayed,
   volume,
   animationsEnabled,
