@@ -1,0 +1,34 @@
+
+> rest-express@1.0.0 dev
+> NODE_ENV=development tsx server/index.ts
+
+[1G[0K8:42:45 PM [express] serving on port 5000
+Browserslist: browsers data (caniuse-lite) is 17 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[1;1H[0J[2m8:42:49 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/dj/BeatReactiveVisuals.tsx, /src/index.css?v=Dm2fG9uBvA_lUPBl1YbBU[22m
+9:12:50 PM [express] GET /api/suno/config 304 in 2ms :: {"isValid":false,"error":"Suno API key not c…
+9:12:53 PM [express] GET /api/suno/config 304 in 1ms :: {"isValid":false,"error":"Suno API key not c…

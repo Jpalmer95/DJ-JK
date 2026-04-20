@@ -1,0 +1,6 @@
+Fix runtime crash in BeatReactiveVisuals - undefined .toFixed() calls
+
+Added null-coalescing guards (??) to all visualControls property
+accesses that call .toFixed() in the BeatReactiveVisuals component.
+Properties guarded: glowIntensity, intensity, speed, sensitivity.
+Also guarded the Slider value prop for glowIntensity.
