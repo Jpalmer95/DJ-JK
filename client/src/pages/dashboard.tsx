@@ -4,7 +4,7 @@ import {
   Music, Disc3, Grid3X3, Mic, Square, Play, Share2, Settings,
   HelpCircle, ChevronLeft, ChevronRight, Layers, Radio,
   Zap, ListMusic, Volume2, Headphones, Eye, Save, Tag, Clock, Trash2, Pause,
-  GripVertical, Sparkles, Info, X
+  GripVertical, Sparkles, Info, X, LayoutGrid, AudioWaveform, Search, Download
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,17 @@ import FullScreenVisualizer from "@/components/dj/FullScreenVisualizer";
 import SunoGenerator from "@/components/SunoGenerator";
 import MoodMenu from "@/components/MoodMenu";
 import { DJMixer, DJTrackInfo } from "@/lib/djAudio";
+import { PadSampler } from "@/lib/padSampler";
+import { StepSequencer } from "@/lib/stepSequencer";
+import MPCPadGrid from "@/components/dj/MPCPadGrid";
+import StepSequencerUI from "@/components/dj/StepSequencerUI";
+import JogWheel from "@/components/dj/JogWheel";
+import ChannelFader from "@/components/dj/ChannelFader";
+import HarmonicWheel from "@/components/dj/HarmonicWheel";
+import MasterRecorder from "@/components/dj/MasterRecorder";
+import SamplerLooper from "@/components/dj/SamplerLooper";
+import FreesoundSearch from "@/components/dj/FreesoundSearch";
+import { KeyboardShortcutManager, createDefaultShortcuts } from "@/lib/keyboardShortcuts";
 import type { SunoTrackResult } from "@/lib/sunoApi";
 import {
   initAudioContext,
@@ -194,8 +205,36 @@ export default function Dashboard() {
   const [mixerState, setMixerState] = useState({ crossfaderPosition: 0.5, masterVolume: 1 });
   const [showFullScreenVisualizer, setShowFullScreenVisualizer] = useState(false);
 
+  // New: Pad sampler and step sequencer
+  const [padSampler] = useState(() => new PadSampler());
+  const [stepSequencer] = useState(() => new StepSequencer());
+  const [activeBank, setActiveBank] = useState(0);
+  const [padQuantize, setPadQuantize] = useState<string>('none');
+  const [activeTab, setActiveTab] = useState<'pads' | 'sequencer' | 'samples' | 'freesound'>('pads');
+  const [crossfaderCurve, setCrossfaderCurve] = useState<string>('linear');
+
+  // Keyboard shortcuts
+  const shortcutManagerRef = useRef<KeyboardShortcutManager | null>(null);
+
   useEffect(() => {
-    const initAudio = () => { initAudioContext(); window.removeEventListener("click", initAudio); };
+    const initAudio = () => {
+      initAudioContext();
+      window.removeEventListener("click", initAudio);
+      // Initialize pad sampler and sequencer
+      padSampler.connectTo(mixer.getOutputNode()!);
+      stepSequencer.connectTo(mixer.getOutputNode()!);
+      // Setup keyboard shortcuts
+      const mgr = createDefaultShortcuts({
+        'transport.play': () => mixer.deckA.isPlaying ? mixer.deckA.pause() : mixer.deckA.play(),
+        'transport.stop': () => mixer.emergencyStop(),
+        'deckA.play': () => mixer.deckA.isPlaying ? mixer.deckA.pause() : mixer.deckA.play(),
+        'deckB.play': () => mixer.deckB.isPlaying ? mixer.deckB.pause() : mixer.deckB.play(),
+        'mixer.crossfaderLeft': () => mixer.setCrossfader(Math.max(0, mixer.crossfaderPosition - 0.1)),
+        'mixer.crossfaderRight': () => mixer.setCrossfader(Math.min(1, mixer.crossfaderPosition + 0.1)),
+      });
+      mgr.startListening();
+      shortcutManagerRef.current = mgr;
+    };
     window.addEventListener("click", initAudio);
     return () => window.removeEventListener("click", initAudio);
   }, []);
@@ -218,6 +257,9 @@ export default function Dashboard() {
       mixer.deckA.onPlayStateChange(() => {});
       mixer.deckB.onTimeUpdate(() => {});
       mixer.deckB.onPlayStateChange(() => {});
+      shortcutManagerRef.current?.stopListening();
+      padSampler.destroy();
+      stepSequencer.destroy();
     };
   }, [mixer]);
 
@@ -566,27 +608,50 @@ export default function Dashboard() {
         {/* Mix Studio View */}
         {activeView === "mixstudio" && (
           <div className="p-4 lg:p-6 space-y-4">
-            <div className="flex items-center justify-between">
+            {/* Header with tabs */}
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
                 <h2 className="text-xl font-bold neon-text-purple">Mix Studio</h2>
-                <p className="text-xs text-white/30">Dual-deck mixing with professional controls</p>
+                <p className="text-xs text-white/30">Professional dual-deck mixing with pads, sequencer & AI generation</p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <SunoGenerator onLoadToDeck={handleTrackGenerated} />
                 <MoodMenu onLoadToDeck={handleTrackGenerated} />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-              <DeckPanel deck={mixer.deckA} otherDeck={mixer.deckB} label="Deck A" state={deckAState} setState={setDeckAState} onLoadTrack={handleLoadTrack} studioMode={studioMode} />
+            {/* Main DJ Layout: Decks + Jog Wheels + Mixer + Faders */}
+            <div className="grid grid-cols-1 xl:grid-cols-5 gap-3">
+              {/* Deck A Side */}
+              <div className="xl:col-span-1 space-y-3">
+                <DeckPanel deck={mixer.deckA} otherDeck={mixer.deckB} label="Deck A" state={deckAState} setState={setDeckAState} onLoadTrack={handleLoadTrack} studioMode={studioMode} />
+                {studioMode === "studio" && (
+                  <ChannelFader deck={mixer.deckA} label="A" volume={deckAState.volume} onVolumeChange={(v) => { mixer.deckA.setVolume(v); setDeckAState(p => ({...p, volume: v})); }} crossfaderCurve={crossfaderCurve as any} compact />
+                )}
+              </div>
 
-              <div className="space-y-3">
+              {/* Jog Wheel A */}
+              <div className="xl:col-span-1 flex items-start justify-center">
+                <JogWheel deck={mixer.deckA} size={180} label="Deck A" isPlaying={deckAState.isPlaying} currentTime={deckAState.currentTime} bpm={mixer.deckA.bpm || 120} />
+              </div>
+
+              {/* Center: Mixer */}
+              <div className="xl:col-span-1 space-y-3">
                 <div className="glass-panel rounded-xl p-4 neon-border">
                   <h4 className="text-xs font-bold text-center neon-text-magenta uppercase tracking-wider mb-4">Mixer</h4>
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <div>
                       <div className="flex justify-between text-[10px] text-white/40 mb-1"><span>A</span><span>Crossfader</span><span>B</span></div>
                       <Slider value={[mixerState.crossfaderPosition * 100]} max={100} step={1} onValueChange={([v]) => { mixer.setCrossfader(v / 100); setMixerState(p => ({ ...p, crossfaderPosition: v / 100 })); }} />
+                    </div>
+                    {/* Crossfader Curve */}
+                    <div className="flex gap-1 justify-center">
+                      {['linear','smooth','cut','hamster'].map(curve => (
+                        <button key={curve} onClick={() => setCrossfaderCurve(curve)}
+                          className={`px-2 py-0.5 rounded text-[9px] capitalize transition-all ${crossfaderCurve === curve ? 'bg-fuchsia-500/30 text-fuchsia-300 border border-fuchsia-500/30' : 'text-white/30 hover:text-white/50 border border-white/5'}`}>
+                          {curve}
+                        </button>
+                      ))}
                     </div>
                     <div>
                       <div className="flex items-center justify-between text-[10px] text-white/40 mb-1"><Volume2 className="w-3 h-3" /><span>Master {Math.round(mixerState.masterVolume * 100)}%</span></div>
@@ -596,25 +661,87 @@ export default function Dashboard() {
                       <Button variant="outline" size="sm" className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-900/30 text-xs" onClick={() => mixer.syncTempos()}>
                         <Music className="w-3 h-3 mr-1" />Sync
                       </Button>
-                      <Button variant="outline" size="sm" className="border-fuchsia-500/30 text-fuchsia-400 hover:bg-fuchsia-900/30 text-xs">
+                      <Button variant="outline" size="sm" className="border-fuchsia-500/30 text-fuchsia-400 hover:bg-fuchsia-900/30 text-xs" onClick={() => { if (mixer.deckA.trackInfo?.bpm) mixer.deckB.setPitchPercentage(((mixer.deckA.bpm / (mixer.deckB.bpm || 120)) - 1) * 100); }}>
                         <Radio className="w-3 h-3 mr-1" />Auto
                       </Button>
                     </div>
+                    {studioMode === "studio" && (
+                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/5">
+                        <Button variant="outline" size="sm" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-900/30 text-xs"><Headphones className="w-3 h-3 mr-1" />Cue A</Button>
+                        <Button variant="outline" size="sm" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-900/30 text-xs"><Headphones className="w-3 h-3 mr-1" />Cue B</Button>
+                      </div>
+                    )}
                   </div>
                 </div>
+                {/* Master Recorder in studio mode */}
+                {studioMode === "studio" && <MasterRecorder mixer={mixer} />}
+              </div>
 
+              {/* Jog Wheel B */}
+              <div className="xl:col-span-1 flex items-start justify-center">
+                <JogWheel deck={mixer.deckB} size={180} label="Deck B" isPlaying={deckBState.isPlaying} currentTime={deckBState.currentTime} bpm={mixer.deckB.bpm || 120} />
+              </div>
+
+              {/* Deck B Side */}
+              <div className="xl:col-span-1 space-y-3">
+                <DeckPanel deck={mixer.deckB} otherDeck={mixer.deckA} label="Deck B" state={deckBState} setState={setDeckBState} onLoadTrack={handleLoadTrack} studioMode={studioMode} />
                 {studioMode === "studio" && (
-                  <div className="glass-panel rounded-xl p-4 neon-border">
-                    <h4 className="text-xs font-bold text-center text-white/50 uppercase tracking-wider mb-3">Headphone Cue</h4>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button variant="outline" size="sm" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-900/30 text-xs"><Headphones className="w-3 h-3 mr-1" />Cue A</Button>
-                      <Button variant="outline" size="sm" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-900/30 text-xs"><Headphones className="w-3 h-3 mr-1" />Cue B</Button>
-                    </div>
+                  <ChannelFader deck={mixer.deckB} label="B" volume={deckBState.volume} onVolumeChange={(v) => { mixer.deckB.setVolume(v); setDeckBState(p => ({...p, volume: v})); }} crossfaderCurve={crossfaderCurve as any} compact />
+                )}
+              </div>
+            </div>
+
+            {/* Bottom Section: Pads / Sequencer / Samples / Freesound + Harmonic Wheel */}
+            <div className="space-y-3">
+              {/* Tab Bar */}
+              <div className="flex gap-1 glass-panel rounded-xl p-1 w-fit">
+                {([
+                  { id: 'pads', icon: LayoutGrid, label: 'MPC Pads' },
+                  { id: 'sequencer', icon: Grid3X3, label: 'Sequencer' },
+                  { id: 'samples', icon: AudioWaveform, label: 'Sampler' },
+                  { id: 'freesound', icon: Search, label: 'Freesound' },
+                ] as const).map(tab => (
+                  <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all
+                      ${activeTab === tab.id ? 'bg-cyan-500/20 text-cyan-300 neon-border shadow-[0_0_10px_rgba(0,255,255,0.2)]' : 'text-white/40 hover:text-white/60'}`}>
+                    <tab.icon className="w-3.5 h-3.5" />
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Tab Content */}
+              <div className="grid grid-cols-1 xl:grid-cols-4 gap-3">
+                <div className="xl:col-span-3">
+                  {activeTab === 'pads' && (
+                    <MPCPadGrid sampler={padSampler} activeBank={activeBank} onBankChange={setActiveBank}
+                      bpm={mixer.deckA.bpm || mixer.deckB.bpm || 120} quantize={padQuantize as any} onQuantizeChange={setPadQuantize} compact={studioMode === 'party'} />
+                  )}
+                  {activeTab === 'sequencer' && (
+                    <StepSequencerUI sequencer={stepSequencer} bpm={mixer.deckA.bpm || mixer.deckB.bpm || 120} compact={studioMode === 'party'} />
+                  )}
+                  {activeTab === 'samples' && (
+                    <SamplerLooper mixer={mixer} bpm={mixer.deckA.bpm || mixer.deckB.bpm || 120} compact={studioMode === 'party'} />
+                  )}
+                  {activeTab === 'freesound' && (
+                    <FreesoundSearch onSoundSelect={(url, name) => {
+                      fetch(url).then(r => r.arrayBuffer()).then(ab => {
+                        const ctx = new AudioContext();
+                        ctx.decodeAudioData(ab).then(buf => {
+                          padSampler.loadSampleFromBuffer(buf, activeBank * 16, activeBank);
+                          toast({ title: 'Sound loaded!', description: `"${name}" loaded to pad ${activeBank * 16 + 1}` });
+                        });
+                      }).catch(() => toast({ title: 'Failed to load sound', variant: 'destructive' }));
+                    }} />
+                  )}
+                </div>
+                {/* Harmonic Wheel sidebar */}
+                {studioMode === "studio" && (
+                  <div className="xl:col-span-1">
+                    <HarmonicWheel deckA={mixer.deckA} deckB={mixer.deckB} />
                   </div>
                 )}
               </div>
-
-              <DeckPanel deck={mixer.deckB} otherDeck={mixer.deckA} label="Deck B" state={deckBState} setState={setDeckBState} onLoadTrack={handleLoadTrack} studioMode={studioMode} />
             </div>
           </div>
         )}

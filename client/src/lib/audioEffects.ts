@@ -678,6 +678,88 @@ export class Bitcrusher extends BaseEffect {
   }
 }
 
+// StutterGate Effect
+export class StutterGate extends BaseEffect {
+  private gateGainNode!: GainNode;
+  private lfo!: OscillatorNode;
+  private lfoGainNode!: GainNode;
+  private patternNode!: WaveShaperNode;
+
+  constructor(id: string = 'stuttergate') {
+    super(id, 'StutterGate');
+  }
+
+  initializeEffect(): void {
+    this.gateGainNode = this.audioContext.createGain();
+    this.gateGainNode.gain.value = 0; // Start silent, controlled by LFO
+
+    this.lfo = this.audioContext.createOscillator();
+    this.lfoGainNode = this.audioContext.createGain();
+    this.patternNode = this.audioContext.createWaveShaper();
+
+    // Create pattern curve: square (0) to sine (1)
+    this.generatePatternCurve(0);
+
+    // Connect LFO -> pattern shaping -> gain modulation
+    this.lfo.connect(this.patternNode);
+    this.patternNode.connect(this.lfoGainNode);
+    this.lfoGainNode.connect(this.gateGainNode.gain);
+
+    // Connect audio signal through gate
+    this.inputNode.connect(this.gateGainNode);
+    this.gateGainNode.connect(this.wetGainNode);
+
+    // Dry signal
+    this.inputNode.connect(this.dryGainNode);
+    this.wetGainNode.connect(this.outputNode);
+    this.dryGainNode.connect(this.outputNode);
+
+    // Start LFO
+    this.lfo.start();
+
+    this.parameters = {
+      rate: { value: 8, min: 0.5, max: 32, default: 8, unit: 'Hz', name: 'Rate' },
+      depth: { value: 1, min: 0, max: 1, default: 1, unit: '', name: 'Depth' },
+      pattern: { value: 0, min: 0, max: 1, default: 0, unit: '', name: 'Pattern' },
+      wetMix: { value: 0.5, min: 0, max: 1, default: 0.5, unit: '', name: 'Wet Mix' }
+    };
+
+    this.setWetMix(0.5);
+  }
+
+  private generatePatternCurve(shape: number): void {
+    const samples = 256;
+    const curve = new Float32Array(samples);
+
+    for (let i = 0; i < samples; i++) {
+      const x = (i * 2) / samples - 1;
+      // Interpolate between square and sine based on shape parameter
+      const square = x >= 0 ? 1 : -1;
+      const sine = Math.sin(x * Math.PI * 0.5);
+      curve[i] = square * (1 - shape) + sine * shape;
+    }
+
+    this.patternNode.curve = curve;
+  }
+
+  protected onParameterChange(name: string, value: number): void {
+    switch (name) {
+      case 'rate':
+        this.lfo.frequency.value = value;
+        break;
+      case 'depth':
+        this.lfoGainNode.gain.value = value;
+        break;
+      case 'pattern':
+        this.generatePatternCurve(value);
+        break;
+      case 'wetMix':
+        this.setWetMix(value);
+        break;
+    }
+  }
+}
+
 // Effects Chain Manager
 export class EffectsChain {
   private effects: BaseEffect[] = [];
@@ -867,6 +949,8 @@ export class EffectFactory {
         return new Flanger(id);
       case 'Bitcrusher':
         return new Bitcrusher(id);
+      case 'StutterGate':
+        return new StutterGate(id);
       default:
         throw new Error(`Unknown effect type: ${type}`);
     }
@@ -881,7 +965,8 @@ export class EffectFactory {
       'Distortion',
       'Phaser',
       'Flanger',
-      'Bitcrusher'
+      'Bitcrusher',
+      'StutterGate'
     ];
   }
 }
