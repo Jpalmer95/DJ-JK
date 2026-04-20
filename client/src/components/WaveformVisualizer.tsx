@@ -66,6 +66,12 @@ export default function WaveformVisualizer({
   const [loops, setLoops] = useState<any[]>([]);
   const [currentBeat, setCurrentBeat] = useState<number>(0);
   const [showSettings, setShowSettings] = useState<boolean>(false);
+
+  // Scrubbing state
+  const [isScrubbing, setIsScrubbing] = useState<boolean>(false);
+  const [hoverTime, setHoverTime] = useState<number | null>(null);
+  const [hoverX, setHoverX] = useState<number>(0);
+  const [hoverY, setHoverY] = useState<number>(0);
   
   // Enhanced audio analysis state
   const [beatInfo, setBeatInfo] = useState<BeatInfo | null>(null);
@@ -586,6 +592,69 @@ export default function WaveformVisualizer({
     deck.seek(clickPosition);
   };
 
+  // Format time as MM:SS
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Calculate time from mouse X position
+  const getTimeFromMouseX = (clientX: number): number | null => {
+    const canvas = canvasRef.current;
+    if (!canvas || !deck?.duration) return null;
+    const rect = canvas.getBoundingClientRect();
+    const x = clientX - rect.left;
+    return Math.max(0, Math.min(deck.duration, (x / canvas.clientWidth) * deck.duration));
+  };
+
+  // Scrubbing handlers
+  const handleMouseDown = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!deck || !deck.duration) return;
+    setIsScrubbing(true);
+    const time = getTimeFromMouseX(event.clientX);
+    if (time !== null) {
+      deck.seek(time);
+    }
+  };
+
+  const handleMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas || !deck?.duration) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    setHoverX(x);
+    setHoverY(y);
+
+    const time = getTimeFromMouseX(event.clientX);
+    setHoverTime(time);
+
+    if (isScrubbing && time !== null) {
+      deck.seek(time);
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsScrubbing(false);
+  };
+
+  const handleMouseLeave = () => {
+    setHoverTime(null);
+    setIsScrubbing(false);
+  };
+
+  // Global mouseup handler to stop scrubbing even if mouse leaves canvas
+  useEffect(() => {
+    const handleGlobalMouseUp = () => setIsScrubbing(false);
+    if (isScrubbing) {
+      window.addEventListener('mouseup', handleGlobalMouseUp);
+    }
+    return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
+  }, [isScrubbing]);
+
   return (
     <div className="w-full relative" data-testid={`waveform-${deck?.id.toLowerCase().replace(' ', '-') || 'default'}`}>
       {isLoading && (
@@ -599,8 +668,25 @@ export default function WaveformVisualizer({
         className={`w-full rounded-md cursor-pointer border border-white/10 ${isPlaying ? 'ring-2 ring-blue-500' : ''}`}
         style={{ height: `${height}px` }}
         onClick={handleCanvasClick}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
         data-testid={`canvas-waveform-${deck?.id.toLowerCase().replace(' ', '-') || 'default'}`}
       />
+
+      {/* Hover time tooltip */}
+      {hoverTime !== null && deck?.duration && (
+        <div
+          className="absolute pointer-events-none z-10 bg-black/90 text-white text-xs px-2 py-1 rounded border border-white/20"
+          style={{
+            left: `${Math.min(hoverX, (canvasRef.current?.clientWidth || 300) - 60)}px`,
+            top: `${Math.max(hoverY - 30, 0)}px`,
+          }}
+        >
+          {formatTime(hoverTime)}
+        </div>
+      )}
       
       {/* Professional DJ Waveform Legend */}
       <div className="absolute top-1 right-1 text-xs text-white/40 bg-black bg-opacity-50 px-2 py-1 rounded">
