@@ -43,7 +43,6 @@ client/src/
   lib/
     djAudio.ts          # Core DJDeck & DJMixer classes
     audioEffects.ts     # EffectsChain and effect processors
-    sunoApi.ts          # Suno AI integration
     beatDetection.ts    # BPM and transient analysis
     moodMapping.ts      # Mood-to-music mapping engine
     padSampler.ts       # Sample playback engine
