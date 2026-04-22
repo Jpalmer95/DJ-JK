@@ -1,6 +1,6 @@
 # DJ JK — Professional DJ Studio
 
-A web-based professional DJ studio built with React, Vite, and the Web Audio API. Mix tracks, apply studio-grade effects, generate AI music with Suno, and perform with beat-reactive visuals — all in the browser.
+A web-based professional DJ studio built with React, Vite, and the Web Audio API. Mix tracks, apply studio-grade effects, and perform with beat-reactive visuals — all in the browser.
 
 ## Features
 
@@ -9,7 +9,6 @@ A web-based professional DJ studio built with React, Vite, and the Web Audio API
 - **BPM Detection & Beat Grids** — Automatic tempo analysis with visual beat grid alignment
 - **Musical Key Analysis** — Camelot / Open Key notation for harmonic mixing
 - **Effects Chain** — Reverb, Delay, Distortion, Phaser, and more with real-time parameter control
-- **Suno AI Integration** — Generate original tracks directly inside the app via Suno API
 - **Beat-Reactive Visuals** — Spectrum analyzer and fullscreen visualizer that responds to the music
 - **Mood Journey Tracker** — Plan and execute mood-based set progressions
 - **Mood Menu** — Thematic music selection for curated vibes
@@ -26,7 +25,6 @@ A web-based professional DJ studio built with React, Vite, and the Web Audio API
 - **Frontend:** React 18, Vite, TypeScript, Tailwind CSS, Radix UI, Lucide React
 - **Audio Engine:** Web Audio API + Howler.js
 - **Backend:** Express, Drizzle ORM, PostgreSQL
-- **AI Music:** Suno API integration
 - **State Management:** React Query, Zustand patterns
 
 ## Project Structure
@@ -60,10 +58,6 @@ npm run dev          # Start Vite dev server
 npm run build        # Production build
 npm run db:push      # Push database schema
 ```
-
-## Suno AI Setup
-
-See [SUNO_SETUP.md](./SUNO_SETUP.md) for API key configuration and usage limits.
 
 ## License
 
