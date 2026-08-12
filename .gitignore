@@ -9,3 +9,7 @@ vite.config.ts.*
 .env
 .env.local
 .env.*.local
+# Python (ai-service)
+ai-service/.venv/
+__pycache__/
+*.pyc
