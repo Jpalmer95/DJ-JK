@@ -1,7 +1,37 @@
+# ============================================================================
+# DJ-JK AI service dependencies.
+#
+# Install torch + torchaudio together from the CUDA index FIRST so versions
+# match (a mismatch breaks CUDA loading):
+#   uv pip install --python .venv/bin/python torch torchaudio==2.6.0 \
+#     --index-url https://download.pytorch.org/whl/cu124
+# Then install stable-audio-tools with --no-deps (its pinned old sentencepiece
+# needs a source build; we satisfy deps manually below):
+#   uv pip install --python .venv/bin/python --no-deps \
+#     git+https://github.com/Stability-AI/stable-audio-tools.git
+# Then the rest:  uv pip install -r requirements.txt
+# ============================================================================
+
+# API + generative models (MusicGen via transformers)
 fastapi>=0.110
 uvicorn[standard]>=0.29
 pydantic>=2.6
-torch>=2.2
-transformers>=4.40
+transformers==4.49.0   # pin: 5.x removed MusicGen/AudioGen classes
 soundfile>=0.12
 numpy>=1.26
+
+# Stem separation (Demucs) + analysis (librosa)
+demucs>=4.0
+torchaudio>=2.2        # kept in sync with torch via the cu124 index above
+librosa>=0.10
+
+# SFX — Stable Audio Open (permissive). Installed --no-deps; runtime deps below.
+einops
+einops_exts
+jaxtyping
+torchsde
+aiohttp
+sentencepiece
+alias-free-torch
+PyWavelets
+pytorch-lightning

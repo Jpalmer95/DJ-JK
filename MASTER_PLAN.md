@@ -152,9 +152,9 @@ assignable to a slot and referencable anywhere (background layer, one-shot, loop
 
 ### Phase 2 — AI generation pipeline (PR 3)
 - [x] `GenerationProvider` interface (`generateSFX`, `generateSong`) + registry (`client/src/lib/generation/`).
-- [x] Local provider: Python microservice (`ai-service/`, FastAPI — MusicGen/AudioGen) on RTX rig + docs.
+- [x] Local provider: Python microservice (`ai-service/`, FastAPI) **fully configured + verified on the rig** (RTX 4070 Ti, CUDA). Modalities: song=MusicGen, sfx=Stable Audio Open (permissive), stems=Demucs (MIT), analyze=librosa. All return valid WAV via base64.
 - [x] Cloud provider: existing Suno proxy wired as a provider.
-- [~] Ingest pipeline: generated output → soundboard slot + auto BPM/key (BPM/key carried from provider; automatic *stem* analysis on ingest still to be wired — see Phase 4).
+- [~] Ingest pipeline: generated output → soundboard slot + auto BPM/key (BPM/key carried from provider; the service exposes `/analyze` (BPM) + `/separate` (stems) — auto-analysis on client ingest still to be wired — see Phase 4).
 - [x] Generative SFX/song UI in the studio ("Generate → lands on a pad", with offline procedural fallback).
 
 ### Phase 3 — VR/XR mode (PR 4)
@@ -174,8 +174,7 @@ assignable to a slot and referencable anywhere (background layer, one-shot, loop
 
 ## 6. Open Questions (need owner input)
 
-- **Local model choice** for Phase 2: MusicGen (full songs) vs AudioGen (SFX) vs both,
-  and whether to use the existing daggr/ComfyUI wiring or a new FastAPI service.
+- ~~**Local model choice**~~ **Resolved (Phase 2):** MusicGen for songs, **Stable Audio Open** for SFX (permissive), Demucs for stems, librosa for analysis — all free, all fit 12 GB, wired into a new FastAPI service (`ai-service/`).
 - **Storage migration:** move existing Postgres data to local-first, or keep Postgres
   as the sync backend for now (hybrid)?
 - **VR split:** keep in-repo (recommended) — confirm no reason to split into a standalone repo yet.
@@ -183,7 +182,29 @@ assignable to a slot and referencable anywhere (background layer, one-shot, loop
 
 ---
 
-## 7. How to Resume
+## 7. Provisioned Infrastructure (Aug 2026)
+
+### Database — local PostgreSQL 18 (wired, portable)
+- `server/db.ts` switched from `@neondatabase/serverless` to **`pg`** (node-postgres) —
+  works with local Postgres OR Neon (same connection string).
+- Local cluster: user-space Postgres 18 (client-only was installed; server `.deb`
+  extracted to `~/pg`, no sudo). `initdb` as user `jonathan` → `~/pgdata`, trust auth,
+  port **5432**. DB `djjk`. All **20 tables** pushed via `drizzle-kit push`.
+- `.env` (gitignored) holds `DATABASE_URL=postgres://jonathan@127.0.0.1:5432/djjk`.
+  `.env.example` committed. `npm run db:push` migrates.
+- Start cluster: `~/pg/usr/lib/postgresql/18/bin/pg_ctl -D ~/pgdata -l ~/pgdata/server.log -o "-p 5432 -k ~/pgdata -h 127.0.0.1" start`
+
+### AI service — `ai-service/` (fully configured + verified on the rig)
+- Venv: `ai-service/.venv` (Python 3.12, uv). CUDA torch 2.6.0 + matching torchaudio.
+- Models cached under `~/.cache/huggingface` / `~/.cache/torch`.
+- Verified endpoints on RTX 4070 Ti: `/generate` song (~2 s) & sfx (~1.6 s),
+  `/separate` (4 stems), `/analyze` (BPM). See `ai-service/README.md`.
+- Start: `cd ai-service && source .venv/bin/activate && python main.py` (port 8701).
+- Install-from-scratch steps are in `ai-service/README.md` + `requirements.txt`.
+
+---
+
+## 8. How to Resume
 
 1. Check this file's checkboxes (`git status`, this doc) to see where we are.
 2. Read the audit section if the codebase changed.
