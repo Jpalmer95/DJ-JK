@@ -158,10 +158,10 @@ assignable to a slot and referencable anywhere (background layer, one-shot, loop
 - [x] Generative SFX/song UI in the studio ("Generate → lands on a pad", with offline procedural fallback).
 
 ### Phase 3 — VR/XR mode (PR 4)
-- [ ] Fix VR entry + build the VR page standalone and from the studio.
-- [ ] Wire real `VRDeckPanel` / `VRJogWheel` / `VRMixer` / `VRPadGrid` / `VRHUD` into `VRScene`.
-- [ ] VR soundboard: reuse the same slot registry, grab/trigger pads with hands/controllers.
-- [ ] VR "conduct" mode: arrange generative snippets in space (experimental).
+- [x] Fix VR entry + build the VR page standalone and from the studio (entry fixed in Phase 0; `vr.html` builds standalone).
+- [x] Wire real `VRDeckPanel` / `VRJogWheel` / `VRMixer` / `VRPadGrid` / `VRHUD` into `VRScene` (replaced placeholder geometry; mixer controls wired to `DJMixer`, deck transport/jog + waveform live, HUD shows live mixer data).
+- [x] VR soundboard: reuses the same local universal-slot registry — pads trigger the real `PadSampler` and load slots from IndexedDB (custom + AI + recorded sounds) for hands/controllers.
+- [~] VR "conduct" mode: arrange generative snippets in space (experimental) — deferred; see Phase 4 / Open Questions.
 
 ### Phase 4 — Hardening & distribution (PR 5)
 - [ ] Performance pass: AudioWorklet DSP, Web Worker analysis, asset streaming.
