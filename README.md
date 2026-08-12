@@ -110,8 +110,9 @@ MASTER_PLAN.md     Roadmap, decisions, and live status checkboxes
 ## Roadmap status
 
 **Done:** Phase 0 (green build, 175→0 TS errors) · Phase 1 (local-first, PWA)
-· Phase 2 (AI pipeline) · Phase 3 (VR wiring + VR soundboard)
+· Phase 2 (AI pipeline) · Phase 3 (VR wiring + VR soundboard) · DB + AI service provisioned
 **Deferred:** full offline boot of every route · ingest stem-analysis · VR
 "conduct" mode · Phase 4 hardening (AudioWorklet, cross-device QA)
+**Planned:** Phase 5 — sound-reactive visuals + media editing (ffmpeg + Hermes skills)
 
 See [`MASTER_PLAN.md`](./MASTER_PLAN.md) for the full, always-current status.

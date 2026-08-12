@@ -170,6 +170,20 @@ assignable to a slot and referencable anywhere (background layer, one-shot, loop
 - [ ] Cross-device QA (phone/tablet/desktop), PWA install polish end-to-end (needs a running DB + reachable host).
 - [ ] Deployment + docs: root `README.md` added; self-host + optional-server + `ai-service` run docs in place.
 
+### Phase 5 — Sound-reactive visuals & media editing (PR 6)
+- [ ] **Real-time interactive sound-responsive visuals:** evolve the existing audio-reactivity
+  (`BeatReactiveVisuals` / `VisualizationControls`) into full live visuals driven by the audio
+  engine's FFT/frequency data — WebGL/three.js GLSL shader scenes, beat-synced color/light,
+  GPU particle fields, and a reactive VR environment. All free (three.js + GLSL, no paid deps).
+- [ ] **Audio editing (in-app, free/OSS):** ffmpeg + lightweight DSP for trim/crop/fade/normalize,
+  plus stem editing from the Demucs output the AI service already produces.
+- [ ] **Video editing + export (free/OSS):** ffmpeg rendering; Hermes Agent skills such as
+  `ascii-video`, `ascii-audio-music-video`, `songsee` (spectrograms), and `manim-video` to turn
+  DJ-JK audio + prompts into visual/audio-video content.
+- [ ] **Hermes Agent integration:** an agent skill/playbook that drives DJ-JK's API + offline
+  tools for automated media production (generate → edit → render → export → publish), reusing the
+  rig's GPU + local models end-to-end.
+
 ---
 
 ## 6. Open Questions (need owner input)
