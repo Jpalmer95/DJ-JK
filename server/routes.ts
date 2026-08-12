@@ -19,6 +19,11 @@ import {
   insertEffectPresetSchema,
   insertEffectSettingSchema,
   insertEffectUsageStatsSchema,
+  insertDjSessionSchema,
+  insertAutomationEventSchema,
+  insertSessionTrackSchema,
+  insertPerformanceMetricSchema,
+  insertSessionShareSchema,
   updateSoundLibrarySchema,
   updateSoundSampleSchema,
   updateNoteMappingSchema,
@@ -30,7 +35,10 @@ import {
   updateMoodTransitionSchema,
   updateEffectCategorySchema,
   updateEffectPresetSchema,
-  updateEffectSettingSchema
+  updateEffectSettingSchema,
+  updateDjSessionSchema,
+  updateSessionTrackSchema,
+  updateSessionShareSchema
 } from "@shared/schema";
 import {
   generateMusic,

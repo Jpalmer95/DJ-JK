@@ -1,6 +1,16 @@
 // MIDI Controller Support System
 // Web MIDI API integration for mapping physical MIDI controllers to DJ application controls
 
+// The Web MIDI API exposes its types globally (MIDIAccess, MIDIInput, ...). This
+// file references them through a `WebMidi` namespace alias for clarity.
+declare namespace WebMidi {
+  type MIDIAccess = globalThis.MIDIAccess;
+  type MIDIInput = globalThis.MIDIInput;
+  type MIDIOutput = globalThis.MIDIOutput;
+  type MIDIMessageEvent = globalThis.MIDIMessageEvent;
+  type MIDIConnectionEvent = globalThis.MIDIConnectionEvent;
+}
+
 // --- Interfaces ---
 
 export interface MIDIMessage {
@@ -574,8 +584,9 @@ export class MIDIControllerManager {
     });
 
     // Also handle device connection/disconnection
-    this.midiAccess.onstatechange = (event: WebMidi.MIDIConnectionEvent) => {
-      const port = event.port;
+    this.midiAccess.onstatechange = (event: Event) => {
+      const connEvent = event as WebMidi.MIDIConnectionEvent;
+      const port = connEvent.port;
       if (port && port.type === 'input' && port.state === 'connected') {
         const input = port as WebMidi.MIDIInput;
         if (this.listening && this.boundMIDIMessage) {

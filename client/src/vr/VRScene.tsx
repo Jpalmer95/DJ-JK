@@ -1,9 +1,15 @@
-import React, { useRef, useMemo } from 'react'
+import React, { useRef, useMemo, useEffect } from 'react'
 import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import { OrbitControls, Stars, Grid, Text, RoundedBox } from '@react-three/drei'
 import { useXR } from '@react-three/xr'
 import { useVRAudio } from './VRApp'
+import { VRDeckPanel } from './components/decks/VRDeckPanel'
+import VRMixer from './components/mixer/VRMixer'
+import VRPadGrid from './components/pads/VRPadGrid'
+import VRHUD from './components/ui/VRHUD'
+import { soundboardStore } from '@/lib/db'
+import { initAudioContext } from '@/lib/audio'
 
 // ---------------------------------------------------------------------------
 // Neon colour constants
@@ -38,7 +44,7 @@ function VRDeckPlaceholder({ label, position }: { label: string; position: [numb
         <meshStandardMaterial color={label.includes('A') ? CYAN : MAGENTA} emissive={label.includes('A') ? CYAN : MAGENTA} emissiveIntensity={0.6} />
       </mesh>
       {/* Pitch slider */}
-      <mesh position={[0.42, 0.08, 0]} boxGeometry={}>
+      <mesh position={[0.42, 0.08, 0]}>
         <boxGeometry args={[0.03, 0.2, 0.03]} />
         <meshStandardMaterial color="#333" metalness={0.8} roughness={0.2} />
       </mesh>
@@ -204,9 +210,55 @@ function FloatingInfoPanel({ position, label, value }: { position: [number, numb
 }
 
 // ---------------------------------------------------------------------------
+// VR Soundboard – pads wired to the real PadSampler, fed from the local
+// universal-slot registry (D5). Any sound added to the 2D soundboard (custom,
+// AI-generated, or recorded) is immediately triggerable here in VR.
+// ---------------------------------------------------------------------------
+function VRSoundboard() {
+  const { padSampler } = useVRAudio()
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const ctx = initAudioContext()
+        const slots = await soundboardStore.load()
+        if (cancelled) return
+        const playable = slots.filter((s) => !s.audioData.startsWith('builtin:'))
+        for (let i = 0; i < Math.min(playable.length, 16); i++) {
+          try {
+            const res = await fetch(playable[i].audioData)
+            const arrayBuf = await res.arrayBuffer()
+            const audioBuffer = await ctx.decodeAudioData(arrayBuf)
+            padSampler.loadSampleFromBuffer(audioBuffer, i, 0)
+          } catch {
+            /* skip slot that can't be decoded this session */
+          }
+        }
+      } catch {
+        /* no local soundboard slots yet */
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [padSampler])
+
+  return (
+    <VRPadGrid
+      position={[0, 0.94, 0.25]}
+      rotation={[-Math.PI / 6, 0, 0]}
+      onPadTrigger={(index, velocity) => padSampler.triggerPad(index, 0, velocity)}
+    />
+  )
+}
+
+// ---------------------------------------------------------------------------
 // DJ Booth – main structure
 // ---------------------------------------------------------------------------
 function DJBooth() {
+  const { mixer } = useVRAudio()
+
   return (
     <group position={[0, 0, -1.5]}>
       {/* Main countertop */}
@@ -271,26 +323,25 @@ function DJBooth() {
         <meshStandardMaterial color={MAGENTA} emissive={MAGENTA} emissiveIntensity={0.8} />
       </mesh>
 
-      {/* ---- Component placements ---- */}
+      {/* ---- Component placements (real VR components, Phase 3) ---- */}
       {/* Deck A – left */}
-      <group position={[-0.85, 0.94, 0]}>
-        <VRDeckPlaceholder label="DECK A" position={[0, 0, 0]} />
-      </group>
+      <VRDeckPanel position={[-0.85, 0.94, 0]} deckIndex={0} />
 
       {/* Deck B – right */}
-      <group position={[0.85, 0.94, 0]}>
-        <VRDeckPlaceholder label="DECK B" position={[0, 0, 0]} />
-      </group>
+      <VRDeckPanel position={[0.85, 0.94, 0]} deckIndex={1} />
 
-      {/* Mixer – center */}
-      <group position={[0, 0.94, -0.05]}>
-        <VRMixerPlaceholder />
-      </group>
+      {/* Mixer – center (wired to the real DJMixer) */}
+      <VRMixer
+        position={[0, 0.94, -0.05]}
+        onCrossfaderChange={(v) => mixer.setCrossfader(v)}
+        onVolumeChange={(deck, v) => (deck === 1 ? mixer.deckA : mixer.deckB).setVolume(v)}
+        onEQChange={(deck, band, v) =>
+          (deck === 1 ? mixer.deckA : mixer.deckB).setEffectParameter('eq3', band, v)
+        }
+      />
 
-      {/* Pad grid – below mixer, angled toward user */}
-      <group position={[0, 0.94, 0.25]}>
-        <VRPadGridPlaceholder />
-      </group>
+      {/* VR soundboard – pads wired to the real PadSampler + local slot registry */}
+      <VRSoundboard />
 
       {/* Support legs */}
       {[-1.3, 1.3].map((x) => (
@@ -443,25 +494,13 @@ function SceneLighting() {
 }
 
 // ---------------------------------------------------------------------------
-// Overhead floating info panels
+// Overhead floating HUD – real mixer data via the VRHUD component
 // ---------------------------------------------------------------------------
 function FloatingUIPanels() {
+  const { mixer } = useVRAudio()
   return (
     <group position={[0, 0, -1.5]}>
-      {/* BPM display */}
-      <FloatingInfoPanel position={[-0.9, 2.0, -0.3]} label="BPM" value="128.00" />
-
-      {/* Track info (Deck A) */}
-      <FloatingInfoPanel position={[-0.9, 1.75, -0.3]} label="DECK A" value="Neon Dreams" />
-
-      {/* Track info (Deck B) */}
-      <FloatingInfoPanel position={[0.9, 1.75, -0.3]} label="DECK B" value="Cyber Pulse" />
-
-      {/* Master output */}
-      <FloatingInfoPanel position={[0, 2.2, -0.3]} label="MASTER" value="-3.2 dB" />
-
-      {/* Time elapsed */}
-      <FloatingInfoPanel position={[0.9, 2.0, -0.3]} label="TIME" value="03:42" />
+      <VRHUD mixer={mixer} position={[0, 1.9, 0.2]} />
     </group>
   )
 }

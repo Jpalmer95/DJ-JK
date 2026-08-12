@@ -79,7 +79,7 @@ export class KeyboardShortcutManager {
   /**
    * Register a shortcut with its handler
    */
-  register(action: string, shortcut: ShortcutAction, handler: ShortcutHandler): void {
+  register(action: string, shortcut: Omit<ShortcutAction, 'action'>, handler: ShortcutHandler): void {
     const comboKey = this.buildKeyComboKey(shortcut.key, shortcut.modifiers);
 
     // Prevent duplicate combo keys (warn and skip)
@@ -236,7 +236,7 @@ export function createDefaultShortcuts(
 ): KeyboardShortcutManager {
   const manager = new KeyboardShortcutManager();
 
-  const defaults: Array<{ action: string; shortcut: ShortcutAction }> = [
+  const defaults: Array<{ action: string; shortcut: Omit<ShortcutAction, 'action'> }> = [
     // Transport
     { action: 'transport.playPause', shortcut: { key: 'Space', description: 'Play/Pause active deck', category: 'Transport', enabled: true } },
     { action: 'transport.stop', shortcut: { key: 's', description: 'Stop active deck', category: 'Transport', enabled: true } },

@@ -101,7 +101,12 @@ function VolumeFader({
 }) {
   const handleRef = useRef<THREE.Mesh>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const { controllers } = useXR();
+  const controllers = useXR((s) => s.inputSourceStates)
+    .map((s) => {
+      const controller = (s as { controller?: THREE.Object3D }).controller;
+      return controller ? { controller } : null;
+    })
+    .filter((x): x is { controller: THREE.Object3D } => x !== null);
   
   const channelHeight = 0.18;
   const minY = -channelHeight / 2;
@@ -180,7 +185,12 @@ function Crossfader({
 }) {
   const handleRef = useRef<THREE.Mesh>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const { controllers } = useXR();
+  const controllers = useXR((s) => s.inputSourceStates)
+    .map((s) => {
+      const controller = (s as { controller?: THREE.Object3D }).controller;
+      return controller ? { controller } : null;
+    })
+    .filter((x): x is { controller: THREE.Object3D } => x !== null);
   
   const channelWidth = 0.12;
   const minX = -channelWidth / 2;
@@ -267,7 +277,12 @@ function EQKnob({
 }) {
   const knobRef = useRef<THREE.Mesh>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const { controllers } = useXR();
+  const controllers = useXR((s) => s.inputSourceStates)
+    .map((s) => {
+      const controller = (s as { controller?: THREE.Object3D }).controller;
+      return controller ? { controller } : null;
+    })
+    .filter((x): x is { controller: THREE.Object3D } => x !== null);
   const lastAngle = useRef(0);
   
   // Map value to rotation (-135 to 135 degrees)
@@ -357,7 +372,12 @@ function MasterFader({
 }) {
   const handleRef = useRef<THREE.Mesh>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const { controllers } = useXR();
+  const controllers = useXR((s) => s.inputSourceStates)
+    .map((s) => {
+      const controller = (s as { controller?: THREE.Object3D }).controller;
+      return controller ? { controller } : null;
+    })
+    .filter((x): x is { controller: THREE.Object3D } => x !== null);
   
   const channelHeight = 0.22;
   const minY = -channelHeight / 2;

@@ -313,40 +313,36 @@ export default function MoodJourneyTracker({ userId }: MoodJourneyTrackerProps) 
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'all'>('week');
 
   // Fetch mood transitions
-  const { data: transitions = [], isLoading, error } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['/api/mood-transitions', userId],
     queryFn: () => apiRequest(`/api/mood-transitions?userId=${userId}`),
     enabled: !!userId,
   });
+  const transitions = (data ?? []) as MoodTransitionRecord[];
 
   // Calculate insights and stats
   const insights = TherapeuticInsightsEngine.generateInsights(transitions);
-  
+
+  const countBy = (key: (t: MoodTransitionRecord) => string): Record<string, number> =>
+    transitions.reduce<Record<string, number>>((acc, t) => {
+      const k = key(t);
+      acc[k] = (acc[k] || 0) + 1;
+      return acc;
+    }, {});
+  const topKey = (map: Record<string, number>): string =>
+    Object.entries(map).sort(([, a], [, b]) => b - a)[0]?.[0] ?? '';
+
   const stats: MoodStats = {
     totalTransitions: transitions.length,
-    mostCommonFromMood: transitions.reduce((acc, t) => {
-      acc[t.currentMood] = (acc[t.currentMood] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>),
-    mostCommonToMood: transitions.reduce((acc, t) => {
-      acc[t.desiredMood] = (acc[t.desiredMood] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>),
-    preferredTransitionStyle: transitions.reduce((acc, t) => {
-      acc[t.transitionType] = (acc[t.transitionType] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>),
+    mostCommonFromMood: topKey(countBy(t => t.currentMood)),
+    mostCommonToMood: topKey(countBy(t => t.desiredMood)),
+    preferredTransitionStyle: topKey(countBy(t => t.transitionType)) || 'none',
     weeklyProgress: Math.min(100, (transitions.filter(t => isThisWeek(parseISO(t.createdAt))).length / 7) * 100),
     currentStreak: calculateCurrentStreak(transitions)
   };
 
-  // Transform stats for display
-  const displayStats = {
-    ...stats,
-    mostCommonFromMood: Object.entries(stats.mostCommonFromMood).sort(([,a], [,b]) => b - a)[0]?.[0] || '',
-    mostCommonToMood: Object.entries(stats.mostCommonToMood).sort(([,a], [,b]) => b - a)[0]?.[0] || '',
-    preferredTransitionStyle: Object.entries(stats.preferredTransitionStyle).sort(([,a], [,b]) => b - a)[0]?.[0] || 'none'
-  };
+  // Display stats (already in string form for display)
+  const displayStats = stats;
 
   if (isLoading) {
     return (

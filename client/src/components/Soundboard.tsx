@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Upload, Volume2, Trash2, Plus, GripVertical, X, Sparkles, Wand2 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { initAudioContext } from "@/lib/audio";
+import { soundboardStore, type SoundboardSlot } from "@/lib/db";
+import { generateSound, ingestToSoundboard, resolveProvider } from "@/lib/generation";
 
 function audioBufferToWav(buffer: AudioBuffer): Blob {
   const numChannels = buffer.numberOfChannels;
@@ -261,6 +263,51 @@ interface SoundboardProps {
   compact?: boolean;
 }
 
+// --- Local-first persistence (Phase 1) ---
+// Custom + AI sounds are stored in IndexedDB (offline-capable, via the universal
+// slot model) with localStorage as an instant-load fallback / old-browser shim.
+
+const LS_KEY = "soundboard-custom-sounds";
+
+function toSlot(sound: SoundByte): SoundboardSlot {
+  return {
+    id: sound.id,
+    name: sound.name,
+    category: sound.category,
+    color: sound.color,
+    audioData: sound.audioData,
+    source: sound.audioData.startsWith("builtin:")
+      ? "builtin"
+      : sound.id.startsWith("ai-")
+        ? "ai"
+        : "custom",
+    createdAt: Date.now(),
+  };
+}
+
+function fromSlot(slot: SoundboardSlot): SoundByte {
+  return {
+    id: slot.id,
+    name: slot.name,
+    category: slot.category,
+    audioData: slot.audioData,
+    color: slot.color,
+  };
+}
+
+function persistCustomSounds(customs: SoundByte[]): void {
+  // IndexedDB is the source of truth for offline resilience.
+  soundboardStore.saveAll(customs.map(toSlot)).catch(() => {
+    /* non-fatal — falls back to localStorage below */
+  });
+  // localStorage: instant synchronous read on next boot + old-browser fallback.
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(customs));
+  } catch {
+    /* storage may be full (large data URLs) — IndexedDB still covers us */
+  }
+}
+
 export default function Soundboard({ compact = false }: SoundboardProps) {
   const { toast } = useToast();
   const [sounds, setSounds] = useState<SoundByte[]>(() => {
@@ -279,6 +326,40 @@ export default function Soundboard({ compact = false }: SoundboardProps) {
   const [newSoundCategory, setNewSoundCategory] = useState("Custom");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
+
+  // Reconcile with IndexedDB on mount (local-first: IndexedDB is authoritative,
+  // localStorage is the instant-load fallback / old-browser shim).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const slots = await soundboardStore.load();
+        if (cancelled) return;
+        if (slots.length > 0) {
+          // IndexedDB has saved customs — use them, keep built-ins.
+          const customs = slots.map(fromSlot);
+          setSounds((prev) => {
+            const builtin = prev.filter((s) => s.audioData.startsWith("builtin:"));
+            return [...builtin, ...customs];
+          });
+        } else {
+          // IndexedDB empty — migrate any localStorage customs into IndexedDB.
+          const saved = localStorage.getItem(LS_KEY);
+          if (saved) {
+            const customs: SoundByte[] = JSON.parse(saved);
+            if (customs.length) {
+              await soundboardStore.saveAll(customs.map(toSlot));
+            }
+          }
+        }
+      } catch {
+        /* IndexedDB unavailable — stay on localStorage */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const getAudioContext = useCallback(() => {
     if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
@@ -325,8 +406,7 @@ export default function Soundboard({ compact = false }: SoundboardProps) {
       };
       const updated = [...sounds, newSound];
       setSounds(updated);
-      const customs = updated.filter(s => !s.audioData.startsWith("builtin:"));
-      localStorage.setItem("soundboard-custom-sounds", JSON.stringify(customs));
+      persistCustomSounds(updated.filter(s => !s.audioData.startsWith("builtin:")));
       setShowUpload(false);
       setNewSoundName("");
       toast({ title: "Sound added!", description: `"${newSound.name}" added to ${newSoundCategory}` });
@@ -338,13 +418,44 @@ export default function Soundboard({ compact = false }: SoundboardProps) {
   const removeSound = (id: string) => {
     const updated = sounds.filter(s => s.id !== id);
     setSounds(updated);
-    const customs = updated.filter(s => !s.audioData.startsWith("builtin:"));
-    localStorage.setItem("soundboard-custom-sounds", JSON.stringify(customs));
+    persistCustomSounds(updated.filter(s => !s.audioData.startsWith("builtin:")));
   };
 
   const generateAISound = useCallback(async () => {
     if (!generatePrompt.trim()) return;
     setIsGenerating(true);
+
+    // Phase 2: try real generative providers (local RTX rig / Suno) first.
+    // The generated asset lands on a soundboard slot and is immediately reusable.
+    try {
+      const provider = await resolveProvider("sfx");
+      if (provider && (await provider.isAvailable())) {
+        const asset = await generateSound({
+          kind: "sfx",
+          prompt: generatePrompt.trim(),
+          durationSeconds: 2.5,
+        });
+        const slot = await ingestToSoundboard(asset);
+        const newSound = fromSlot(slot);
+        setSounds((prev) => {
+          const updated = [...prev, newSound];
+          persistCustomSounds(updated.filter((s) => !s.audioData.startsWith("builtin:")));
+          return updated;
+        });
+        setGeneratePrompt("");
+        setShowGenerate(false);
+        setIsGenerating(false);
+        toast({
+          title: "AI Sound Generated!",
+          description: `"${newSound.name}" created via ${asset.provider} and added to ${newSound.category}`,
+        });
+        return;
+      }
+    } catch (err) {
+      console.warn("Real provider failed — falling back to procedural synthesis:", err);
+    }
+
+    // Fallback: deterministic procedural synthesis (works fully offline).
     try {
       const ctx = getAudioContext();
       const duration = 1.5;
@@ -431,8 +542,7 @@ export default function Soundboard({ compact = false }: SoundboardProps) {
         };
         const updated = [...sounds, newSound];
         setSounds(updated);
-        const customs = updated.filter(s => !s.audioData.startsWith("builtin:"));
-        localStorage.setItem("soundboard-custom-sounds", JSON.stringify(customs));
+        persistCustomSounds(updated.filter(s => !s.audioData.startsWith("builtin:")));
         setGeneratePrompt("");
         setShowGenerate(false);
         toast({ title: "AI Sound Generated!", description: `"${newSound.name}" created and added to ${category}` });

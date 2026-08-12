@@ -116,7 +116,7 @@ function StemChannel({
     >
       {/* Stem icon and label */}
       <div className="flex flex-col items-center w-10 shrink-0">
-        <IconComponent className="w-4 h-4 mb-0.5" style={{ color }} />
+        <IconComponent className="w-4 h-4 mb-0.5" />
         <span className="text-[10px] uppercase font-semibold" style={{ color }}>
           {type}
         </span>

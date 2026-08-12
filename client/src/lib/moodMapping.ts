@@ -453,8 +453,9 @@ export class MoodPromptGenerator {
       energetic: ['power flowing', 'strength growing', 'moving forward'],
     };
 
-    const startThemes = themes[fromMood] || ['beginning this journey'];
-    const endThemes = themes[toMood] || ['finding my way'];
+    const themesRecord = themes as Record<string, string[]>;
+    const startThemes = themesRecord[fromMood] || ['beginning this journey'];
+    const endThemes = themesRecord[toMood] || ['finding my way'];
 
     const lyrics: string[] = [];
     

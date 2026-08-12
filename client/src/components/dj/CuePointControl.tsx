@@ -110,7 +110,8 @@ export default function CuePointControl({ deck, className = '' }: CuePointContro
             time: parseFloat(dbCue.timePosition),
             name: dbCue.name,
             color: dbCue.color,
-            id: dbCue.id
+            id: dbCue.id,
+            type: 'hot'
           };
           newHotCues[index] = cuePoint;
           deck.hotCues[index] = cuePoint;
