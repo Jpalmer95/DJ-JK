@@ -32,6 +32,28 @@ export default defineConfig({
         main: path.resolve(import.meta.dirname, "client", "index.html"),
         vr: path.resolve(import.meta.dirname, "client", "vr.html"),
       },
+      output: {
+        // Phase 4 perf: split heavy vendor libs so each caches independently and
+        // the app shell stays small. 'three' is only pulled by the VR entry.
+        manualChunks(id) {
+          if (id.includes("node_modules/three") || id.includes("@react-three")) {
+            return "three";
+          }
+          if (
+            id.includes("node_modules/react") ||
+            id.includes("node_modules/react-dom") ||
+            id.includes("node_modules/scheduler")
+          ) {
+            return "react-vendor";
+          }
+          if (id.includes("framer-motion") || id.includes("motion-dom") || id.includes("motion-utils")) {
+            return "motion";
+          }
+          if (id.includes("node_modules/lucide-react")) {
+            return "icons";
+          }
+        },
+      },
     },
   },
 });

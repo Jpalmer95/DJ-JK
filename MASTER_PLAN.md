@@ -164,9 +164,11 @@ assignable to a slot and referencable anywhere (background layer, one-shot, loop
 - [~] VR "conduct" mode: arrange generative snippets in space (experimental) — deferred; see Phase 4 / Open Questions.
 
 ### Phase 4 — Hardening & distribution (PR 5)
-- [ ] Performance pass: AudioWorklet DSP, Web Worker analysis, asset streaming.
-- [ ] Cross-device QA (phone/tablet/desktop), PWA install polish.
-- [ ] Deployment + docs (self-host + optional server).
+- [x] Bundle/perf pass: Vite `manualChunks` splits `three` / `react` / `motion` / `icons` (main 726→527 kB; the ~1.9 MB `three` chunk now loads only with the VR page).
+- [x] PWA install polish: `beforeinstallprompt` hook + "Install DJ-JK" + "Offline ready" overlay, iOS `apple-touch-icon` + 192/512 PNG icons, theme-color.
+- [ ] Performance pass: AudioWorklet DSP, Web Worker analysis, asset streaming (deferred — next candidate).
+- [ ] Cross-device QA (phone/tablet/desktop), PWA install polish end-to-end (needs a running DB + reachable host).
+- [ ] Deployment + docs: root `README.md` added; self-host + optional-server + `ai-service` run docs in place.
 
 ---
 

@@ -28,3 +28,19 @@ export async function isOfflineReady(): Promise<boolean> {
   const reg = await navigator.serviceWorker.getRegistration();
   return !!(reg && (reg.active || reg.waiting));
 }
+
+// --- Install prompt (PWA "Add to home screen") ---
+// Chromium exposes this event but does not ship its TypeScript type.
+export interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+}
+
+/** True when the app is running in a standalone (installed) window. */
+export function isStandalone(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (navigator as unknown as { standalone?: boolean }).standalone === true
+  );
+}
