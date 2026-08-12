@@ -7,6 +7,7 @@ import { Upload, Volume2, Trash2, Plus, GripVertical, X, Sparkles, Wand2 } from 
 import { Slider } from "@/components/ui/slider";
 import { initAudioContext } from "@/lib/audio";
 import { soundboardStore, type SoundboardSlot } from "@/lib/db";
+import { generateSound, ingestToSoundboard, resolveProvider } from "@/lib/generation";
 
 function audioBufferToWav(buffer: AudioBuffer): Blob {
   const numChannels = buffer.numberOfChannels;
@@ -423,6 +424,38 @@ export default function Soundboard({ compact = false }: SoundboardProps) {
   const generateAISound = useCallback(async () => {
     if (!generatePrompt.trim()) return;
     setIsGenerating(true);
+
+    // Phase 2: try real generative providers (local RTX rig / Suno) first.
+    // The generated asset lands on a soundboard slot and is immediately reusable.
+    try {
+      const provider = await resolveProvider("sfx");
+      if (provider && (await provider.isAvailable())) {
+        const asset = await generateSound({
+          kind: "sfx",
+          prompt: generatePrompt.trim(),
+          durationSeconds: 2.5,
+        });
+        const slot = await ingestToSoundboard(asset);
+        const newSound = fromSlot(slot);
+        setSounds((prev) => {
+          const updated = [...prev, newSound];
+          persistCustomSounds(updated.filter((s) => !s.audioData.startsWith("builtin:")));
+          return updated;
+        });
+        setGeneratePrompt("");
+        setShowGenerate(false);
+        setIsGenerating(false);
+        toast({
+          title: "AI Sound Generated!",
+          description: `"${newSound.name}" created via ${asset.provider} and added to ${newSound.category}`,
+        });
+        return;
+      }
+    } catch (err) {
+      console.warn("Real provider failed — falling back to procedural synthesis:", err);
+    }
+
+    // Fallback: deterministic procedural synthesis (works fully offline).
     try {
       const ctx = getAudioContext();
       const duration = 1.5;

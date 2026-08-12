@@ -151,11 +151,11 @@ assignable to a slot and referencable anywhere (background layer, one-shot, loop
 - [~] Make the 2D studio boot with zero server calls in offline mode (soundboard + custom/AI sounds are offline-capable; full studio-wide server independence still in progress).
 
 ### Phase 2 — AI generation pipeline (PR 3)
-- [ ] `GenerationProvider` interface (`generateSFX`, `generateSong`) + registry.
-- [ ] Local provider: Python microservice (MusicGen/AudioGen) on RTX rig; FastAPI + docs.
-- [ ] Cloud provider: existing Suno proxy as a provider.
-- [ ] Ingest pipeline: generated output → soundboard slot + auto BPM/key/stem analysis.
-- [ ] Generative SFX/song UI in the studio ("Generate → lands on a pad").
+- [x] `GenerationProvider` interface (`generateSFX`, `generateSong`) + registry (`client/src/lib/generation/`).
+- [x] Local provider: Python microservice (`ai-service/`, FastAPI — MusicGen/AudioGen) on RTX rig + docs.
+- [x] Cloud provider: existing Suno proxy wired as a provider.
+- [~] Ingest pipeline: generated output → soundboard slot + auto BPM/key (BPM/key carried from provider; automatic *stem* analysis on ingest still to be wired — see Phase 4).
+- [x] Generative SFX/song UI in the studio ("Generate → lands on a pad", with offline procedural fallback).
 
 ### Phase 3 — VR/XR mode (PR 4)
 - [ ] Fix VR entry + build the VR page standalone and from the studio.
