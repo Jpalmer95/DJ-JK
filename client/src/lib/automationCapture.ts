@@ -100,7 +100,7 @@ export class AutomationCaptureEngine {
   
   // Parameter tracking for change detection
   private lastValues: Map<string, any> = new Map();
-  private parameterWatchers: Map<string, number> = new Map(); // Interval IDs
+  private parameterWatchers: Map<string, ReturnType<typeof setInterval>> = new Map(); // Interval IDs
   private debouncedUpdates: Map<string, number> = new Map(); // Debounce timers
   
   // Event callbacks
@@ -559,7 +559,7 @@ export class AutomationCaptureEngine {
       // Monitor effect bypass state
       this.setupParameterWatcher(
         `${deckId}_${effect.id}_bypass`,
-        () => effect.bypass ? 1 : 0,
+        () => (effect as unknown as { bypass: boolean }).bypass ? 1 : 0,
         (value, previousValue) => this.captureEvent({
           eventType: 'effect_bypass',
           deckId,

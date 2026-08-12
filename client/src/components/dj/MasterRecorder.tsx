@@ -278,8 +278,8 @@ export const MasterRecorder = ({ mixer }: MasterRecorderProps) => {
 
     // We also need to connect the tap to the scriptNode.
     // But the tap is already connected to the output chain.
-    // We use connectRecordingDestination to hook in.
-    mixer.connectRecordingDestination(scriptNode);
+    // We use connectMasterRecordingDestination to hook in.
+    mixer.connectMasterRecordingDestination(scriptNode);
 
     scriptNodeRef.current = scriptNode;
     recordingDestRef.current = null; // not using MediaStream approach
@@ -307,7 +307,7 @@ export const MasterRecorder = ({ mixer }: MasterRecorderProps) => {
     if (!scriptNode) return;
 
     // Disconnect
-    mixer.disconnectRecordingDestination(scriptNode);
+    mixer.disconnectMasterRecordingDestination(scriptNode);
     scriptNode.disconnect();
     scriptNode.onaudioprocess = null;
     scriptNodeRef.current = null;
@@ -408,7 +408,7 @@ export const MasterRecorder = ({ mixer }: MasterRecorderProps) => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       if (audioElRef.current) audioElRef.current.pause();
       if (scriptNodeRef.current) {
-        try { mixer.disconnectRecordingDestination(scriptNodeRef.current); } catch { /* ignore */ }
+        try { mixer.disconnectMasterRecordingDestination(scriptNodeRef.current); } catch { /* ignore */ }
       }
       clips.forEach((c) => URL.revokeObjectURL(c.blobUrl));
     };

@@ -669,7 +669,7 @@ export async function generateKitBuffers(kitName: KitName, ctx: AudioContext): P
     const offlineCtx = new OfflineAudioContext(1, Math.ceil(sampleRate * duration), sampleRate);
     const gainNode = offlineCtx.createGain();
     gainNode.connect(offlineCtx.destination);
-    genFn(offlineCtx, 0, gainNode);
+    genFn(offlineCtx as unknown as AudioContext, 0, gainNode);
     const buffer = await offlineCtx.startRendering();
     buffers[name] = buffer;
   }

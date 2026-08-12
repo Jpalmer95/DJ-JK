@@ -44,7 +44,7 @@ import {
 interface MoodMenuProps {
   onTrackGenerated?: (track: SunoTrackResult) => void;
   onLoadToDeck?: (track: SunoTrackResult, deckId: string) => void;
-  userId: number;
+  userId?: number;
 }
 
 // Beautiful mood grid component

@@ -196,7 +196,7 @@ export default function BPMDisplay({ deck, otherDeck, className = '' }: BPMDispl
             <Music className="w-4 h-4 text-cyan-400/60" />
             <span className="text-sm text-cyan-400/60 uppercase tracking-wide">BPM</span>
             {deck.syncState.isSynced && (
-              <Zap className="w-4 h-4 text-blue-400" title="Synced" />
+              <Zap className="w-4 h-4 text-blue-400" aria-label="Synced" />
             )}
           </div>
           

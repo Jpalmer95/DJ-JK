@@ -356,8 +356,9 @@ export class MoodTransitionGenerator {
       neutral: ['finding balance', 'steady ground', 'centered being']
     };
     
-    const startThemes = themes[fromMood] || ['beginning this journey'];
-    const endThemes = themes[toMood] || ['finding my way'];
+    const themesRecord = themes as Record<string, string[]>;
+    const startThemes = themesRecord[fromMood] || ['beginning this journey'];
+    const endThemes = themesRecord[toMood] || ['finding my way'];
     
     const lyrics: string[] = [];
     

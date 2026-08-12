@@ -31,8 +31,6 @@ const xrStore = createXRStore({
   hand: true,
   // Fallback to controllers (Quest / generic OpenXR)
   controller: true,
-  // Use local-floor so the user can stand and walk around the DJ booth
-  referenceSpace: 'local-floor',
 })
 
 // ---------------------------------------------------------------------------

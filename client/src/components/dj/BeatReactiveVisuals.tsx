@@ -442,7 +442,12 @@ export default function BeatReactiveVisuals({
 
     // Update performance stats
     const stats = visualEngineRef.current.getPerformanceStats();
-    setPerformanceStats(stats);
+    setPerformanceStats({
+      fps: stats.averageFPS,
+      processingTime: stats.frameTime,
+      particleCount: stats.particleCount,
+      effectCount: stats.effectCount,
+    });
 
     animationRef.current = requestAnimationFrame(updateAudioData);
   };

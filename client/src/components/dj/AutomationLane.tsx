@@ -344,11 +344,11 @@ export default function AutomationLaneView({
         });
       });
 
-      return best ? { laneId: best.laneId, pointIndex: best.pointIndex } : null;
+      const b = best as { laneId: string; pointIndex: number; dist: number } | null;
+      return b ? { laneId: b.laneId, pointIndex: b.pointIndex } : null;
     },
     [lanes, laneHeight, beatToX, pointRadius]
   );
-
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       const pos = getCanvasMousePos(e);

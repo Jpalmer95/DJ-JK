@@ -38,7 +38,7 @@ function VRDeckPlaceholder({ label, position }: { label: string; position: [numb
         <meshStandardMaterial color={label.includes('A') ? CYAN : MAGENTA} emissive={label.includes('A') ? CYAN : MAGENTA} emissiveIntensity={0.6} />
       </mesh>
       {/* Pitch slider */}
-      <mesh position={[0.42, 0.08, 0]} boxGeometry={}>
+      <mesh position={[0.42, 0.08, 0]}>
         <boxGeometry args={[0.03, 0.2, 0.03]} />
         <meshStandardMaterial color="#333" metalness={0.8} roughness={0.2} />
       </mesh>

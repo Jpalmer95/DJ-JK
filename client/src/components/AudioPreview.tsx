@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import { Play, Pause, Volume2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import WaveformVisualizer from './WaveformVisualizer';
 
 interface AudioPreviewProps {
   audioUrl: string;
@@ -122,15 +121,27 @@ export default function AudioPreview({
     >
       {title && <h4 className="text-sm font-medium text-gray-700">{title}</h4>}
       
-      {/* Waveform */}
-      <div className="cursor-pointer" onClick={togglePlayback}>
-        <WaveformVisualizer 
-          audioUrl={audioUrl} 
-          color={color}
-          height={compact ? 40 : 60}
-          animated={true}
-          playing={isPlaying}
-        />
+      {/* Waveform (lightweight inline visual — self-contained, no deck needed) */}
+      <div className="cursor-pointer" onClick={togglePlayback} title="Click to toggle playback">
+        <div
+          className="flex items-end gap-[2px]"
+          style={{ height: compact ? 32 : 48 }}
+        >
+          {Array.from({ length: 48 }).map((_, i) => {
+            const progress = duration > 0 ? currentTime / duration : 0;
+            const filled = progress > i / 48;
+            return (
+              <div
+                key={i}
+                className="flex-1 rounded-sm"
+                style={{
+                  height: `${15 + Math.abs(Math.sin(i * 0.7)) * 85}%`,
+                  backgroundColor: filled ? color : `${color}33`,
+                }}
+              />
+            );
+          })}
+        </div>
       </div>
       
       {/* Controls */}

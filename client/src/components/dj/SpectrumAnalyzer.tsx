@@ -125,7 +125,7 @@ export default function SpectrumAnalyzer({
   useEffect(() => {
     if (!deck || !enableBeatDetection) return;
 
-    const analyzerNode = deck.getFrequencyData ? deck['analyserNode'] : null;
+    const analyzerNode = deck['analyserNode'] ?? null;
     if (!analyzerNode) return;
 
     // Create beat detector

@@ -62,7 +62,7 @@ import {
 } from "@shared/schema";
 import { SharedRecording } from "./routes";
 import { db } from "./db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql, gte, lte } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -774,7 +774,14 @@ export class MemStorage implements IStorage {
   async createAutomationEvent(eventData: InsertAutomationEvent): Promise<AutomationEvent> {
     const id = randomUUID();
     const event: AutomationEvent = {
-      ...eventData,
+      sessionId: eventData.sessionId,
+      timestamp: eventData.timestamp,
+      eventType: eventData.eventType,
+      parameter: eventData.parameter,
+      deckId: eventData.deckId ?? null,
+      value: eventData.value ?? null,
+      stringValue: eventData.stringValue ?? null,
+      metadata: eventData.metadata ?? null,
       id,
       createdAt: new Date(),
     };
@@ -810,7 +817,21 @@ export class MemStorage implements IStorage {
   async createSessionTrack(trackData: InsertSessionTrack): Promise<SessionTrack> {
     const id = randomUUID();
     const track: SessionTrack = {
-      ...trackData,
+      sessionId: trackData.sessionId,
+      trackId: trackData.trackId,
+      deckId: trackData.deckId,
+      playOrder: trackData.playOrder,
+      startTime: trackData.startTime,
+      endTime: trackData.endTime ?? null,
+      playDuration: trackData.playDuration ?? null,
+      transitionType: trackData.transitionType ?? null,
+      transitionDuration: trackData.transitionDuration ?? null,
+      avgPitch: trackData.avgPitch ?? null,
+      cuePointsUsed: trackData.cuePointsUsed ?? null,
+      loopsUsed: trackData.loopsUsed ?? null,
+      effectsUsed: trackData.effectsUsed ?? null,
+      keyLockEnabled: trackData.keyLockEnabled ?? false,
+      syncEnabled: trackData.syncEnabled ?? false,
       id,
       createdAt: new Date(),
     };
@@ -860,7 +881,12 @@ export class MemStorage implements IStorage {
   async createPerformanceMetric(metricData: InsertPerformanceMetric): Promise<PerformanceMetric> {
     const id = randomUUID();
     const metric: PerformanceMetric = {
-      ...metricData,
+      sessionId: metricData.sessionId,
+      metricType: metricData.metricType,
+      score: metricData.score,
+      timestamp: metricData.timestamp ?? null,
+      details: metricData.details ?? null,
+      suggestions: metricData.suggestions ?? [],
       id,
       createdAt: new Date(),
     };
@@ -964,6 +990,222 @@ export class MemStorage implements IStorage {
       const updated = { ...share, accessCount: share.accessCount + 1 };
       this.sessionShares.set(share.id, updated);
     }
+  }
+
+  private initializeDefaultEffectCategories(): void {
+    const defaults: Array<{ name: string; description: string; color: string; isSystem: boolean }> = [
+      { name: "Reverb", description: "Ambient space and depth", color: "#8b5cf6", isSystem: true },
+      { name: "Delay", description: "Echo and rhythmic repeats", color: "#06b6d4", isSystem: true },
+      { name: "Distortion", description: "Drive, saturation and grit", color: "#f43f5e", isSystem: true },
+      { name: "Filter", description: "Frequency shaping (EQ, LP, HP)", color: "#f59e0b", isSystem: true },
+      { name: "Modulation", description: "Chorus, flanger, phaser and tremolo", color: "#10b981", isSystem: true },
+    ];
+    for (const category of defaults) {
+      const id = randomUUID();
+      this.effectCategories.set(id, {
+        id,
+        name: category.name,
+        description: category.description,
+        color: category.color,
+        isSystem: category.isSystem,
+        createdAt: new Date(),
+      });
+    }
+  }
+
+  // Effect Category methods
+  async createEffectCategory(categoryData: InsertEffectCategory): Promise<EffectCategory> {
+    const id = randomUUID();
+    const category: EffectCategory = {
+      id,
+      name: categoryData.name,
+      description: categoryData.description ?? null,
+      color: categoryData.color ?? "#6b7280",
+      isSystem: categoryData.isSystem ?? false,
+      createdAt: new Date(),
+    };
+    this.effectCategories.set(id, category);
+    return category;
+  }
+
+  async getEffectCategories(): Promise<EffectCategory[]> {
+    return Array.from(this.effectCategories.values());
+  }
+
+  async getEffectCategory(id: string): Promise<EffectCategory | undefined> {
+    return this.effectCategories.get(id);
+  }
+
+  async updateEffectCategory(id: string, updates: Partial<InsertEffectCategory>): Promise<EffectCategory | undefined> {
+    const existing = this.effectCategories.get(id);
+    if (!existing) return undefined;
+
+    const updated: EffectCategory = {
+      ...existing,
+      ...(updates.name !== undefined && { name: updates.name }),
+      ...(updates.description !== undefined && { description: updates.description }),
+      ...(updates.color !== undefined && { color: updates.color }),
+      ...(updates.isSystem !== undefined && { isSystem: updates.isSystem }),
+    };
+    this.effectCategories.set(id, updated);
+    return updated;
+  }
+
+  async deleteEffectCategory(id: string): Promise<boolean> {
+    if (!this.effectCategories.has(id)) return false;
+    this.effectCategories.delete(id);
+    return true;
+  }
+
+  // Effect Preset methods
+  async createEffectPreset(presetData: InsertEffectPreset): Promise<EffectPreset> {
+    const id = randomUUID();
+    const preset: EffectPreset = {
+      id,
+      userId: presetData.userId,
+      categoryId: presetData.categoryId ?? null,
+      name: presetData.name,
+      description: presetData.description ?? null,
+      effectsChain: presetData.effectsChain,
+      tags: presetData.tags ?? [],
+      isPublic: presetData.isPublic ?? false,
+      isFavorite: presetData.isFavorite ?? false,
+      useCount: 0,
+      lastUsedAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.effectPresets.set(id, preset);
+    return preset;
+  }
+
+  async getEffectPresets(userId: number): Promise<EffectPreset[]> {
+    return Array.from(this.effectPresets.values())
+      .filter(preset => preset.userId === userId)
+      .sort((a, b) => {
+        if (!a.lastUsedAt && !b.lastUsedAt) return 0;
+        if (!a.lastUsedAt) return 1;
+        if (!b.lastUsedAt) return -1;
+        return b.lastUsedAt.getTime() - a.lastUsedAt.getTime();
+      });
+  }
+
+  async getEffectPresetsByCategory(categoryId: string): Promise<EffectPreset[]> {
+    return Array.from(this.effectPresets.values())
+      .filter(preset => preset.categoryId === categoryId)
+      .sort((a, b) => {
+        if (!a.lastUsedAt && !b.lastUsedAt) return 0;
+        if (!a.lastUsedAt) return 1;
+        if (!b.lastUsedAt) return -1;
+        return b.lastUsedAt.getTime() - a.lastUsedAt.getTime();
+      });
+  }
+
+  async getEffectPreset(id: string): Promise<EffectPreset | undefined> {
+    return this.effectPresets.get(id);
+  }
+
+  async updateEffectPreset(id: string, updates: Partial<InsertEffectPreset>): Promise<EffectPreset | undefined> {
+    const existing = this.effectPresets.get(id);
+    if (!existing) return undefined;
+
+    const updated: EffectPreset = {
+      ...existing,
+      ...(updates.categoryId !== undefined && { categoryId: updates.categoryId }),
+      ...(updates.name !== undefined && { name: updates.name }),
+      ...(updates.description !== undefined && { description: updates.description }),
+      ...(updates.effectsChain !== undefined && { effectsChain: updates.effectsChain }),
+      ...(updates.tags !== undefined && { tags: updates.tags }),
+      ...(updates.isPublic !== undefined && { isPublic: updates.isPublic }),
+      ...(updates.isFavorite !== undefined && { isFavorite: updates.isFavorite }),
+      updatedAt: new Date(),
+    };
+    this.effectPresets.set(id, updated);
+    return updated;
+  }
+
+  async deleteEffectPreset(id: string): Promise<boolean> {
+    if (!this.effectPresets.has(id)) return false;
+    this.effectPresets.delete(id);
+    return true;
+  }
+
+  async updateEffectPresetUsage(id: string): Promise<void> {
+    const preset = this.effectPresets.get(id);
+    if (preset) {
+      const updated = { ...preset, useCount: preset.useCount + 1, lastUsedAt: new Date() };
+      this.effectPresets.set(id, updated);
+    }
+  }
+
+  // Effect Setting methods
+  async createEffectSetting(settingData: InsertEffectSetting): Promise<EffectSetting> {
+    const id = randomUUID();
+    const setting: EffectSetting = {
+      id,
+      userId: settingData.userId,
+      settingKey: settingData.settingKey,
+      settingValue: settingData.settingValue,
+      category: settingData.category,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.effectSettings.set(id, setting);
+    return setting;
+  }
+
+  async getEffectSettings(userId: number): Promise<EffectSetting[]> {
+    return Array.from(this.effectSettings.values()).filter(setting => setting.userId === userId);
+  }
+
+  async getEffectSettingByKey(userId: number, settingKey: string): Promise<EffectSetting | undefined> {
+    return Array.from(this.effectSettings.values()).find(
+      setting => setting.userId === userId && setting.settingKey === settingKey
+    );
+  }
+
+  async updateEffectSetting(id: string, settingValue: any): Promise<EffectSetting | undefined> {
+    const existing = this.effectSettings.get(id);
+    if (!existing) return undefined;
+
+    const updated = { ...existing, settingValue, updatedAt: new Date() };
+    this.effectSettings.set(id, updated);
+    return updated;
+  }
+
+  async deleteEffectSetting(id: string): Promise<boolean> {
+    if (!this.effectSettings.has(id)) return false;
+    this.effectSettings.delete(id);
+    return true;
+  }
+
+  // Effect Usage Stats methods
+  async createEffectUsageStats(statsData: InsertEffectUsageStats): Promise<EffectUsageStats> {
+    const id = randomUUID();
+    const stats: EffectUsageStats = {
+      id,
+      userId: statsData.userId,
+      effectType: statsData.effectType,
+      parametersUsed: statsData.parametersUsed,
+      sessionDuration: statsData.sessionDuration,
+      trackId: statsData.trackId ?? null,
+      sessionId: statsData.sessionId ?? null,
+      timestamp: new Date(),
+    };
+    this.effectUsageStats.set(id, stats);
+    return stats;
+  }
+
+  async getEffectUsageStats(userId: number): Promise<EffectUsageStats[]> {
+    return Array.from(this.effectUsageStats.values())
+      .filter(stats => stats.userId === userId)
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  }
+
+  async getEffectUsageStatsByEffect(userId: number, effectType: string): Promise<EffectUsageStats[]> {
+    return Array.from(this.effectUsageStats.values())
+      .filter(stats => stats.userId === userId && stats.effectType === effectType)
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
   }
 }
 
@@ -1419,7 +1661,304 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
   }
-  
+
+  // DJ Session methods
+  async createDjSession(sessionData: InsertDjSession): Promise<DjSession> {
+    const id = randomUUID();
+
+    const [session] = await db
+      .insert(djSessions)
+      .values({
+        ...sessionData,
+        id
+      })
+      .returning();
+
+    return session;
+  }
+
+  async getDjSessions(userId: number): Promise<DjSession[]> {
+    return db
+      .select()
+      .from(djSessions)
+      .where(eq(djSessions.userId, userId))
+      .orderBy(desc(djSessions.createdAt));
+  }
+
+  async getDjSession(id: string): Promise<DjSession | undefined> {
+    const [session] = await db
+      .select()
+      .from(djSessions)
+      .where(eq(djSessions.id, id));
+
+    return session;
+  }
+
+  async updateDjSession(id: string, updates: Partial<InsertDjSession>): Promise<DjSession | undefined> {
+    const [updated] = await db
+      .update(djSessions)
+      .set({
+        ...updates,
+        updatedAt: new Date()
+      })
+      .where(eq(djSessions.id, id))
+      .returning();
+
+    return updated;
+  }
+
+  async deleteDjSession(id: string): Promise<boolean> {
+    try {
+      await db
+        .delete(djSessions)
+        .where(eq(djSessions.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting DJ session:", error);
+      return false;
+    }
+  }
+
+  async incrementDjSessionViews(id: string): Promise<void> {
+    await db
+      .update(djSessions)
+      .set({
+        viewCount: sql`${djSessions.viewCount} + 1`
+      })
+      .where(eq(djSessions.id, id));
+  }
+
+  async incrementDjSessionDownloads(id: string): Promise<void> {
+    await db
+      .update(djSessions)
+      .set({
+        downloadCount: sql`${djSessions.downloadCount} + 1`
+      })
+      .where(eq(djSessions.id, id));
+  }
+
+  // Automation Event methods
+  async createAutomationEvent(eventData: InsertAutomationEvent): Promise<AutomationEvent> {
+    const id = randomUUID();
+
+    const [event] = await db
+      .insert(automationEvents)
+      .values({
+        ...eventData,
+        id
+      })
+      .returning();
+
+    return event;
+  }
+
+  async getAutomationEvents(sessionId: string): Promise<AutomationEvent[]> {
+    return db
+      .select()
+      .from(automationEvents)
+      .where(eq(automationEvents.sessionId, sessionId))
+      .orderBy(automationEvents.timestamp);
+  }
+
+  async getAutomationEventsByTimeRange(sessionId: string, startTime: number, endTime: number): Promise<AutomationEvent[]> {
+    return db
+      .select()
+      .from(automationEvents)
+      .where(and(
+        eq(automationEvents.sessionId, sessionId),
+        gte(automationEvents.timestamp, String(startTime)),
+        lte(automationEvents.timestamp, String(endTime))
+      ))
+      .orderBy(automationEvents.timestamp);
+  }
+
+  async deleteAutomationEventsBySession(sessionId: string): Promise<boolean> {
+    try {
+      await db
+        .delete(automationEvents)
+        .where(eq(automationEvents.sessionId, sessionId));
+      return true;
+    } catch (error) {
+      console.error("Error deleting automation events:", error);
+      return false;
+    }
+  }
+
+  // Session Track methods
+  async createSessionTrack(trackData: InsertSessionTrack): Promise<SessionTrack> {
+    const id = randomUUID();
+
+    const [track] = await db
+      .insert(sessionTracks)
+      .values({
+        ...trackData,
+        id
+      })
+      .returning();
+
+    return track;
+  }
+
+  async getSessionTracks(sessionId: string): Promise<SessionTrack[]> {
+    return db
+      .select()
+      .from(sessionTracks)
+      .where(eq(sessionTracks.sessionId, sessionId))
+      .orderBy(sessionTracks.playOrder);
+  }
+
+  async getSessionTrack(id: string): Promise<SessionTrack | undefined> {
+    const [track] = await db
+      .select()
+      .from(sessionTracks)
+      .where(eq(sessionTracks.id, id));
+
+    return track;
+  }
+
+  async updateSessionTrack(id: string, updates: Partial<InsertSessionTrack>): Promise<SessionTrack | undefined> {
+    const [updated] = await db
+      .update(sessionTracks)
+      .set(updates)
+      .where(eq(sessionTracks.id, id))
+      .returning();
+
+    return updated;
+  }
+
+  async deleteSessionTrack(id: string): Promise<boolean> {
+    try {
+      await db
+        .delete(sessionTracks)
+        .where(eq(sessionTracks.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting session track:", error);
+      return false;
+    }
+  }
+
+  // Performance Metric methods
+  async createPerformanceMetric(metricData: InsertPerformanceMetric): Promise<PerformanceMetric> {
+    const id = randomUUID();
+
+    const [metric] = await db
+      .insert(performanceMetrics)
+      .values({
+        ...metricData,
+        id
+      })
+      .returning();
+
+    return metric;
+  }
+
+  async getPerformanceMetrics(sessionId: string): Promise<PerformanceMetric[]> {
+    return db
+      .select()
+      .from(performanceMetrics)
+      .where(eq(performanceMetrics.sessionId, sessionId))
+      .orderBy(performanceMetrics.timestamp);
+  }
+
+  async getPerformanceMetricsByType(sessionId: string, metricType: string): Promise<PerformanceMetric[]> {
+    return db
+      .select()
+      .from(performanceMetrics)
+      .where(and(
+        eq(performanceMetrics.sessionId, sessionId),
+        eq(performanceMetrics.metricType, metricType)
+      ))
+      .orderBy(performanceMetrics.timestamp);
+  }
+
+  async deletePerformanceMetricsBySession(sessionId: string): Promise<boolean> {
+    try {
+      await db
+        .delete(performanceMetrics)
+        .where(eq(performanceMetrics.sessionId, sessionId));
+      return true;
+    } catch (error) {
+      console.error("Error deleting performance metrics:", error);
+      return false;
+    }
+  }
+
+  // Session Share methods
+  async createSessionShare(shareData: InsertSessionShare): Promise<SessionShare> {
+    const id = randomUUID();
+
+    const [share] = await db
+      .insert(sessionShares)
+      .values({
+        ...shareData,
+        id
+      })
+      .returning();
+
+    return share;
+  }
+
+  async getSessionShares(sessionId: string): Promise<SessionShare[]> {
+    return db
+      .select()
+      .from(sessionShares)
+      .where(eq(sessionShares.sessionId, sessionId))
+      .orderBy(desc(sessionShares.createdAt));
+  }
+
+  async getSessionShare(id: string): Promise<SessionShare | undefined> {
+    const [share] = await db
+      .select()
+      .from(sessionShares)
+      .where(eq(sessionShares.id, id));
+
+    return share;
+  }
+
+  async getSessionShareByCode(shareCode: string): Promise<SessionShare | undefined> {
+    const [share] = await db
+      .select()
+      .from(sessionShares)
+      .where(eq(sessionShares.shareCode, shareCode));
+
+    return share;
+  }
+
+  async updateSessionShare(id: string, updates: Partial<InsertSessionShare>): Promise<SessionShare | undefined> {
+    const [updated] = await db
+      .update(sessionShares)
+      .set({
+        ...updates,
+        updatedAt: new Date()
+      })
+      .where(eq(sessionShares.id, id))
+      .returning();
+
+    return updated;
+  }
+
+  async deleteSessionShare(id: string): Promise<boolean> {
+    try {
+      await db
+        .delete(sessionShares)
+        .where(eq(sessionShares.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting session share:", error);
+      return false;
+    }
+  }
+
+  async incrementSessionShareAccess(shareCode: string): Promise<void> {
+    await db
+      .update(sessionShares)
+      .set({
+        accessCount: sql`${sessionShares.accessCount} + 1`
+      })
+      .where(eq(sessionShares.shareCode, shareCode));
+  }
+
   // Cue Point methods
   async createCuePoint(cueData: InsertCuePoint): Promise<CuePoint> {
     const id = randomUUID();
@@ -1743,7 +2282,7 @@ export class DatabaseStorage implements IStorage {
     await db
       .update(effectPresets)
       .set({
-        useCount: db.sql`${effectPresets.useCount} + 1`,
+        useCount: sql`${effectPresets.useCount} + 1`,
         lastUsedAt: new Date()
       })
       .where(eq(effectPresets.id, id));

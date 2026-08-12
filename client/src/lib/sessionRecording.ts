@@ -443,7 +443,7 @@ export class SessionRecordingEngine {
       this.startProgressTracking();
       
       this.recordingStartTime = this.audioContext!.currentTime;
-      console.log(`Session recording started: ${this.session.title}`);
+      console.log(`Session recording started: ${this.session.metadata.title}`);
       
     } catch (error) {
       this.setState('error');

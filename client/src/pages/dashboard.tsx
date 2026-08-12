@@ -34,9 +34,9 @@ import StepSequencerUI from "@/components/dj/StepSequencerUI";
 import JogWheel from "@/components/dj/JogWheel";
 import ChannelFader from "@/components/dj/ChannelFader";
 import HarmonicWheel from "@/components/dj/HarmonicWheel";
-import MasterRecorder from "@/components/dj/MasterRecorder";
+import { MasterRecorder } from "@/components/dj/MasterRecorder";
 import SamplerLooper from "@/components/dj/SamplerLooper";
-import FreesoundSearch from "@/components/dj/FreesoundSearch";
+import { FreesoundSearch } from "@/components/dj/FreesoundSearch";
 import { KeyboardShortcutManager, createDefaultShortcuts } from "@/lib/keyboardShortcuts";
 import type { SunoTrackResult } from "@/lib/sunoApi";
 import {
@@ -724,7 +724,7 @@ export default function Dashboard() {
                     <SamplerLooper mixer={mixer} bpm={mixer.deckA.bpm || mixer.deckB.bpm || 120} compact={studioMode === 'party'} />
                   )}
                   {activeTab === 'freesound' && (
-                    <FreesoundSearch onSoundSelect={(url, name) => {
+                    <FreesoundSearch onSoundSelect={(url: string, name: string) => {
                       fetch(url).then(r => r.arrayBuffer()).then(ab => {
                         const ctx = new AudioContext();
                         ctx.decodeAudioData(ab).then(buf => {

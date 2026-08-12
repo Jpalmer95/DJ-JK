@@ -281,7 +281,7 @@ export class VisualEffectsEngine {
     
     // Try to initialize WebGL if enabled
     if (renderConfig.enableWebGL) {
-      this.webglCtx = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      this.webglCtx = (canvas.getContext('webgl') as WebGLRenderingContext | null) || (canvas.getContext('experimental-webgl') as WebGLRenderingContext | null);
       if (this.webglCtx) {
         console.log('WebGL enabled for enhanced visual effects');
       }
