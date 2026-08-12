@@ -103,6 +103,13 @@ biggest change and the foundation for "works on any computer / most devices."
 - Local store: **IndexedDB** (Dexie) for tracks, samples, sets, soundboards, recordings.
 - Server stays for: account sync, real-time collab, cloud AI generation.
 
+### D6 — Native IndexedDB, not a dependency (Phase 1, implemented)
+The plan named Dexie, but Phase 1 ships a **native IndexedDB** wrapper
+(`client/src/lib/db.ts`) with zero dependencies. Rationale: aligns with the owner's
+"low-level first" principle, keeps the bundle lean, avoids an install, and the API is
+small enough that a library adds little. Dexie can be swapped in later if the query
+surface grows (dozens of indexes / live queries).
+
 ### D2 — Pluggable AI generation provider
 Introduce a generation **provider interface** (`generateSFX`, `generateSong`) with:
 - **Local provider** → self-hosted Python microservice on the RTX 4070 Ti rig
@@ -130,18 +137,18 @@ assignable to a slot and referencable anywhere (background layer, one-shot, loop
 ## 5. Roadmap
 
 ### Phase 0 — Stabilize & baseline (PR 1)
-- [ ] Fix broken VR entry import (`./vr/VRApp` → `./src/vr/VRApp`).
-- [ ] Add `target` / `downlevelIteration` to `tsconfig.json` (clears 33 × TS2802).
-- [ ] Fix ~140 genuine TypeScript errors across ~30 files.
-- [ ] Clean leftover "Piano Tiles" title.
-- [ ] `npm run build` green.
-- [ ] Commit + push (feature branch → PR → merge).
+- [x] Fix broken VR entry import (`./vr/VRApp` → `./src/vr/VRApp`).
+- [x] Add `target` / `downlevelIteration` to `tsconfig.json` (clears 33 × TS2802).
+- [x] Fix ~140 genuine TypeScript errors across ~30 files.
+- [x] Clean leftover "Piano Tiles" title.
+- [x] `npm run build` green.
+- [x] Commit + push (feature branch → PR → merge).
 
 ### Phase 1 — Local-first foundation (PR 2)
-- [ ] IndexedDB local storage layer (Dexie) + storage abstraction (local vs server).
-- [ ] PWA: service worker + manifest → installable + offline.
-- [ ] Soundboard slot registry, local-first.
-- [ ] Make the 2D studio boot with zero server calls in offline mode.
+- [x] IndexedDB local storage layer + storage abstraction (implemented with **native IndexedDB** — no dependency — per the low-level-first principle).
+- [x] PWA: service worker + manifest + icons → installable + offline app shell.
+- [x] Soundboard slot registry, local-first (custom + AI sounds persist to IndexedDB with localStorage fallback).
+- [~] Make the 2D studio boot with zero server calls in offline mode (soundboard + custom/AI sounds are offline-capable; full studio-wide server independence still in progress).
 
 ### Phase 2 — AI generation pipeline (PR 3)
 - [ ] `GenerationProvider` interface (`generateSFX`, `generateSong`) + registry.
